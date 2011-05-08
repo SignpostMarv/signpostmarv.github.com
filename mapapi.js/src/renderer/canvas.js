@@ -35,7 +35,8 @@
 		renderer   = mapapi['renderer'],
 		gridConfig = mapapi['gridConfig'],
 		gridPoint  = mapapi['gridPoint'],
-		bounds     = mapapi['bounds']
+		bounds     = mapapi['bounds'],
+		size       = mapapi['size']
 	;
 
 	var moveOrder = function(from, to){
@@ -56,6 +57,23 @@
 		}
 	}
 
+	var zoomOrder = function(from, to){
+		this['from']    = from;
+		this['to']      = to;
+		this['current'] = 0;
+	}
+	zoomOrder.prototype.overTime = function(time, fps){
+		if(!this['frames']){
+			this['frames'] = Math.max(1, Math.floor(time * fps));
+			var
+				frames = this['frames'],
+				to     = this['to'],
+				from   = this['from']
+			;
+			this['increment'] = (to - from) / frames;
+		}
+	}
+
 	var canvas = function(options){
 		var supported = document.createElement('canvas');
 		if(supported){
@@ -67,7 +85,18 @@
 		var
 			obj        = this,
 			options    = options || {},
-			gridConf = options['gridConfig']
+			gridConf = options['gridConfig'],
+			clickpan = function(e){
+				if(obj.dragging == false){
+					clearTimeout(obj.mousedown_timer);
+					var
+						x     = e['clientX'],
+						y     = e['clientY'],
+						point = obj['px2point'](x - this['offsetLeft'], y - this['offsetTop'])
+					;
+					obj['panTo'](point);
+				}
+			}
 		;
 		if((gridConf instanceof gridConfig) == false){
 			throw 'Grid Configuration object must be instance of mapapi.gridConfig';
@@ -80,7 +109,7 @@
 		mapapi['utils']['addClass'](obj['contentNode'], 'mapapi-renderer');
 		mapapi['renderer'].call(obj, options);
 
-		obj['options']['fps'] = Math.max(1, options['fps'] || 15);
+		obj['options']['fps'] = Math.max(1, options['fps'] || 30);
 		obj['options']['maxZoom'] = gridConf['maxZoom'];
 
 		obj.grid_images = {};
@@ -89,43 +118,7 @@
 
 		window.addEventListener('resize', function(){ obj.dirty = true; obj.updateBounds(); }, true);
 
-		var
-			dragging          = false,
-			mousedown_timer   = undefined,
-			dragstart_pos     = undefined,
-			mousedown_handler = function(e){
-				var
-					x = e['clientX'],
-					y = e['clientY']
-				;
-				dragstart_pos = obj['px2point'](x - this['offsetLeft'], y - this['offsetTop']);
-				clearTimeout(mousedown_timer);
-				mousedown_timer = setTimeout(function(){
-					dragging = true;
-				}, 50);
-			},
-			mouseup_handler   = function(){
-				clearTimeout(mousedown_timer);
-				dragging = false;
-			},
-			mousemove_handler = function(e){
-				var
-					x     = e['clientX'],
-					y     = e['clientY'],
-					point = obj['px2point'](x - this['offsetLeft'], y - this['offsetTop']),
-					focus = obj['focus']()
-				;
-				if(dragging){
-					obj['focus'](
-						focus['x'] - (point['x'] - dragstart_pos['x']),
-						focus['y'] - (point['y'] - dragstart_pos['y'])
-					);
-				}
-			}
-		;
-		obj['contentNode'].addEventListener('mousedown', mousedown_handler, false);
-		obj['contentNode'].addEventListener('mouseup'  , mouseup_handler  , false);
-		obj['contentNode'].addEventListener('mousemove', mousemove_handler, false);
+//		obj['contentNode'].addEventListener('mouseup', clickpan, false);
 
 		obj['zoom'](0);
 		obj['focus'](0, 0);
@@ -168,20 +161,6 @@
 			x = x - (x % zoom_b)
 		;
 		return (images[zi] && images[zi][x] && images[zi][x][y] instanceof Image);
-	}
-
-	canvas.prototype['px2point'] = function(x, y){
-		var
-			obj     = this,
-			canvas  = obj['contentNode'],
-			sw      = obj.bounds['sw'],
-			ne      = obj.bounds['ne'],
-			cWidth  = canvas['width'],
-			cHeight = canvas['height'],
-			mapX    = sw['x'] + ((ne['x'] - sw['x']) * (x / cWidth)),
-			mapY    = ne['y'] - ((ne['y'] - sw['y']) * (y / cHeight))
-		;
-		return new gridPoint(mapX, mapY);
 	}
 
 	canvas.prototype.getImage = function(x, y, zoom, preload){
@@ -228,6 +207,18 @@
 		return images[zi][x][y];
 	}
 
+	canvas.prototype.tileSize = function(){
+		var
+			obj = this,
+			zoom    = obj['zoom'](),
+			zoom_a  = .5 + (.5 * (1 - (zoom % 1))),
+			zoom_b  = 1 << Math.floor(zoom),
+			tWidth  = (obj.tileSource['size']['width'] * zoom_a) / zoom_b,
+			tHeight = (obj.tileSource['size']['height'] * zoom_a) / zoom_b
+		;
+		return new size(tWidth, tHeight);
+	}
+
 	canvas.prototype.draw = function(fps){
 		fps = Math.max(1, fps || 0);
 		var obj = this;
@@ -243,13 +234,7 @@
 			ctx.save();
 
 			if(obj.moving){
-				obj.moving.overTime(3,fps);
-				window['status'] = [
-					obj.moving['from']['x'],
-					obj['moving']['incrX'],
-					obj['moving']['current'],
-					obj.moving['frames']
-				]
+				obj.moving.overTime(.5,fps);
 				++obj.moving.current;
 				obj['focus'](
 					obj.moving['from']['x'] + (obj['moving']['incrX'] * obj['moving']['current']),
@@ -259,20 +244,28 @@
 					delete obj.moving;
 				}
 			}
+			if(obj.zooming){
+				obj.zooming.overTime(.5,fps);
+				++obj.zooming['current'];
+				obj['zoom'](obj.zooming['from'] + (obj.zooming['increment'] * obj.zooming['current']));
+				if(obj.zooming['current'] >= obj.zooming['frames']){
+					delete obj.zooming;
+				}
+			}
 
 			var
 				zoom    = obj['zoom'](),
 				zoom_a  = .5 + (.5 * (1 - (zoom % 1))),
 				zoom_b  = 1 << Math.floor(zoom),
-				scale   = 1 - (.5 * zoom),
 				focus   = obj['focus'](),
 				cbounds = obj.bounds,
 				cWidth  = canvas['width'],
 				cWidth2 = cWidth / 2.0,
 				cHeight = canvas['height'],
 				cHeight2= cHeight / 2.0,
-				tWidth  = (obj.tileSource['size']['width'] * zoom_a) / zoom_b,
-				tHeight = (obj.tileSource['size']['height'] * zoom_a) / zoom_b,
+				size    = obj.tileSize(),
+				tWidth  = size['width'],
+				tHeight = size['height'],
 				images  = [],
 				startX  = cbounds['sw']['x'] - (cbounds['sw']['x'] % zoom_b),
 				startY  = cbounds['sw']['y'] - (cbounds['sw']['y'] % zoom_b)
@@ -379,6 +372,89 @@
 			}
 		}
 		return opts['scrollWheelZoom'];
+	}
+
+	canvas.prototype['draggable'] = function(flag){
+		var
+			obj  = this,
+			opts = obj['options'],
+			dragstart_pos     = undefined,
+			mousedown_handler = function(e){
+				var
+					x = e['clientX'],
+					y = e['clientY']
+				;
+				dragstart_pos = obj['px2point'](x - this['offsetLeft'], y - this['offsetTop']);
+				clearTimeout(obj.mousedown_timer);
+				obj.dragging = false;
+				obj.mousedown_timer = setTimeout(function(){
+					obj.dragging = true;
+				}, 100);
+			},
+			mouseup_handler   = function(){
+				clearTimeout(obj.mousedown_timer);
+				obj.dragging = false;
+			},
+			mousemove_handler = function(e){
+				if(obj.dragging){
+					var
+						x     = e['clientX'],
+						y     = e['clientY'],
+						point = obj['px2point'](x - this['offsetLeft'], y - this['offsetTop']),
+						focus = obj['focus']()
+					;
+					obj['focus'](
+						focus['x'] - (point['x'] - dragstart_pos['x']),
+						focus['y'] - (point['y'] - dragstart_pos['y'])
+					);
+				}
+			}
+		;
+		if(flag != undefined){
+			flag = !!flag;
+			opts['draggable'] = flag;
+			if(flag){
+				obj['contentNode']['addEventListener']('mousedown', mousedown_handler, false);
+				obj['contentNode']['addEventListener']('mouseup'  , mouseup_handler  , false);
+				obj['contentNode']['addEventListener']('mousemove', mousemove_handler, false);
+			}else{
+				obj['contentNode']['removeEventListener']('mousedown', mousedown_handler, false);
+				obj['contentNode']['removeEventListener']('mouseup'  , mouseup_handler  , false);
+				obj['contentNode']['removeEventListener']('mousemove', mousemove_handler, false);
+			}
+		}
+		return opts['draggable'];
+	}
+
+	canvas.prototype['dblclickZoom'] = function(flag){
+		var
+			obj  = this,
+			opts = obj['options'],
+			dblclickzoom = function(e){
+				var
+					x     = e['clientX'],
+					y     = e['clientY'],
+					point = obj['px2point'](x - this['offsetLeft'], y - this['offsetTop'])
+				;
+				if(obj['smoothZoom']()){
+					obj.moving  = new moveOrder(obj['focus'](), point);
+					obj.zooming = new zoomOrder(obj['zoom'](),obj['zoom']() - 1);
+				}else{
+					obj['zoom'](obj['zoom']() - 1);
+					obj['focus'](point);
+					obj.dirty = true;
+				}
+			}
+		;
+		if(flag != undefined){
+			flag = !!flag;
+			opts['dblclickZoom'] = flag;
+			if(flag){
+				obj['contentNode']['addEventListener']('dblclick', dblclickzoom, false);
+			}else{
+				obj['contentNode']['removeEventListener']('dblclick', dblclickzoom, false);
+			}
+		}
 	}
 
 	mapapi['canvasRenderer'] = canvas;
