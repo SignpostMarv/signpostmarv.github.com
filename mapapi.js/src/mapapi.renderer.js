@@ -126,7 +126,7 @@
 		if(value){
 			opts['panUnitUD'] = Math.max(value, 1);
 		}
-		return opts['panUnitUD'];
+		return opts['panUnitUD'] * Math.pow(2, this['zoom']());
 	}
 
 	renderer.prototype.panUnitLR = function(value){
@@ -136,7 +136,7 @@
 		if(value){
 			opts['panUnitLR'] = Math.max(value, 1);
 		}
-		return opts['panUnitLR'];
+		return opts['panUnitLR'] * Math.pow(2, this['zoom']());
 	}
 
 	renderer.prototype.panTo = function(pos, a){
@@ -154,6 +154,26 @@
 				this['focus'](pos);
 			}
 		}
+	}
+
+	renderer.prototype.panUp = function(){
+		var pos = this.focus();
+		this.panTo(pos['x'], pos['y'] + this.panUnitUD());
+	}
+
+	renderer.prototype.panDown = function(){
+		var pos = this.focus();
+		this.panTo(pos['x'], pos['y'] - this.panUnitUD());
+	}
+
+	renderer.prototype.panLeft = function(){
+		var pos = this.focus();
+		this.panTo(pos['x'] - this.panUnitLR(), pos['y']);
+	}
+
+	renderer.prototype.panRight = function(){
+		var pos = this.focus();
+		this.panTo(pos['x'] + this.panUnitLR(), pos['y']);
 	}
 
 	renderer.prototype.scrollWheelZoom = function(flag){
@@ -252,7 +272,7 @@
 		}else if(opts instanceof gridPoint || (typeof opts == 'object' && typeof opts['x'] == 'number' && typeof opts['y'] == 'number')){
 			opts = {'focus':(opts instanceof gridPoint) ? opts : new gridPoint(opts['x'],opts['y'])};
 		}
-		zoom = pos = animateOrder = !1;
+		pos = animateOrder = !1;
 		if(opts['zoom'] != undefined){
 			zoom = (typeof opts['zoom'] == 'number') ? opts['zoom'] : (opts['zoom'] * 1);
 			zoom = (zoom != czoom && zoom >= mnzm && zoom <= mxzm) ? zoom : undefined;
@@ -266,7 +286,7 @@
 		;
 		if(a || b){
 			animateOrder = {};
-			if(a != undefined){
+			if(zoom != undefined){
 				animateOrder['zoom']      = zoom;
 				animateOrder['fromZoom']  = czoom;
 			}
@@ -350,6 +370,10 @@
 	mapapi['renderer'].prototype['panUnitUD']       = renderer.prototype.panUnitUD;
 	mapapi['renderer'].prototype['panUnitLR']       = renderer.prototype.panUnitLR;
 	mapapi['renderer'].prototype['panTo']           = renderer.prototype.panTo;
+	mapapi['renderer'].prototype['panUp']           = renderer.prototype.panUp;
+	mapapi['renderer'].prototype['panDown']         = renderer.prototype.panDown;
+	mapapi['renderer'].prototype['panLeft']         = renderer.prototype.panLeft;
+	mapapi['renderer'].prototype['panRight']        = renderer.prototype.panRight;
 	mapapi['renderer'].prototype['scrollWheelZoom'] = renderer.prototype.scrollWheelZoom;
 	mapapi['renderer'].prototype['smoothZoom']      = renderer.prototype.smoothZoom;
 	mapapi['renderer'].prototype['draggable']       = renderer.prototype.draggable;
