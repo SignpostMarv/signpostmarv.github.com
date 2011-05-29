@@ -25,20 +25,22 @@ window.onload = function(){
 		mapui = new mapapi.minimalistUI({
 			gridConfig : mapapi.gridConfigs['com.secondlife.agni']
 		}),
-		map   = mapui.renderer
+		map   = mapui.renderer,
+		marker = new mapapi.marker({
+			'image'      : '../src/ui/marker-shadows.png',
+			'anchor'     : {'x':16, 'y': 64},
+			'position'   : new mapapi.gridPoint(1000, 1000),
+			'infoWindow' : new mapapi.infoWindow({
+				'content' : 'Marker Infowindow'
+			})
+		})
 	;
 	map.scrollWheelZoom(true);
 	map.smoothZoom(true);
 	map.draggable(true);
 	map.focus(1000,1000,0);
-	var infoWindow = mapui.infoWindow({
-		'content'  : 'oh hai!',
-		'position' : new mapapi.gridPoint(1000, 1000)
-	});
-	var foo = map.addListener('click', function(e){
-		infoWindow.open(mapui);
-		map.removeListener('click', foo);
-	});
+
+	marker.open(mapui);
 };
 </script>
 </head>
