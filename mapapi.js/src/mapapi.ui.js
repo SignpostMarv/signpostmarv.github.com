@@ -191,7 +191,9 @@
 		;
 		EventTarget['call'](obj);
 
-		obj['opts'] = {'open':false};
+		obj['opts'] = {
+			'open' : false
+		};
 
 		obj['rendererEvents'] = {
 			'focus_changed'  : [],
@@ -341,7 +343,11 @@
 						if((vertical && horizontal) || (height == 0 && obj['ui']['renderer']['bounds']()['isWithin'](obj['position']()))){
 							style['top']  = top + 'px';
 							style['left'] = left + 'px';
-							obj['show']()
+							if(obj['opts']['disableAutoShow'] != true){
+								obj['show']()
+							}else{
+								obj['hide']();
+							}
 						}else{
 							obj['hide']();
 						}
@@ -522,10 +528,12 @@
 		if(infoW instanceof infoWindow){
 			infoW['position'](obj['position']());
 			obj['addListener']('click', function(){
+				obj['opts']['disableAutoShow'] = true;
 				obj['hide']();
 				infoW['open'](obj['ui']);
 			});
 			infoW['addListener']('closed', function(){
+				obj['opts']['disableAutoShow'] = false;
 				obj['show']();
 			});
 		}
@@ -653,14 +661,18 @@
 
 	numberedMarker.prototype['content2DOM'] = function(){
 		var
-			content = marker.prototype['content2DOM']['call'](this),
-			img     = this['img'],
+			obj     = this,
+			content = marker.prototype['content2DOM']['call'](obj),
+			img     = obj['img'],
 			DOM     = createElement('div'),
 			number  = createElement('p'),
-			value   = parseInt(this['opts']['number'])
+			value   = parseInt(obj['opts']['number'])
 		;
 		number['appendChild'](createText(value));
 		number['setAttribute']('title', value);
+		number['onclick'] = function(){
+			obj['fire']('click');
+		}
 
 		delClass(content, 'mapapi-ui-marker');
 		addClass(content, 'mapapi-ui-marker-img');
