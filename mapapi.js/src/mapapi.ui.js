@@ -32,8 +32,10 @@
 		mapapi        = window['mapapi'],
 		gridPoint     = mapapi['gridPoint'],
 		bounds        = mapapi['bounds'],
-		addClass      = mapapi['utils'] ? mapapi['utils']['addClass'] : undefined,
-		delClass      = mapapi['utils'] ? mapapi['utils']['delClass'] : undefined
+		utils         = mapapi['utils'],
+		addClass      = utils ? utils['addClass'] : undefined,
+		delClass      = utils ? utils['delClass'] : undefined,
+		empty         = utils ? utils['empty']    : undefined
 	;
 
 	function extend(a,b){
@@ -77,11 +79,11 @@
 			;
 			try{
 				if(canvas['getContext'] && !!canvas['getContext']('2d')){
-					renderer = mapapi['canvasRenderer'];
+					renderer = mapapi['renderers']['canvas'];
 				}
 			}catch(e){}
 			if(renderer == undefined){
-				renderer = mapapi['google3Renderer'];
+				renderer = mapapi['renderers']['google3'];
 			}
 			if(renderer == undefined){
 				throw 'Could not locate any renderers';				
@@ -93,9 +95,7 @@
 		}else if(!(renderer instanceof mapapi['renderer'])){
 			throw 'Specified renderer is not an instance of mapapi.renderer';
 		}
-		while(container['hasChildNodes']()){
-			container['removeChild'](container['firstChild']);
-		}
+		empty(container);
 		container['appendChild'](rendererNode);
 		container['appendChild'](sidebars);
 
