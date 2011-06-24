@@ -32,9 +32,19 @@
 		document    = window['document'],
 		mapapi      = window['mapapi'],
 		SLURL       = window['SLURL'],
-		google      = window['google'],
+		google      = window['google']
+	;
+	if(google == undefined){
+		throw 'Google JS not loaded, check JavaScript permissions';
+	}
+	var
 		google_maps = google['maps'],
-		GLatLng     = google_maps['LatLng'],
+		GLatLng     = google_maps['LatLng']
+	;
+	if(google_maps == undefined || GLatLng == undefined){
+		throw 'Google Maps API not loaded, check JavaScript permissions';
+	}
+	var
 		renderer    = mapapi['renderer'],
 		gridConfig  = mapapi['gridConfig'],
 		gridPoint   = mapapi['gridPoint'],
@@ -442,11 +452,11 @@
 					'strokeWidth'   : mapapiShape['lineWidth']()
 				});
 				mapapiShape['google3']['setMap'](this['vendorContent']);
-			}/*else if(mapapiShape instanceof circle || mapapiShape.prototype instanceof circle){
+			}else if(mapapiShape instanceof circle || mapapiShape.prototype instanceof circle){
 				setcolors();
 				mapapiShape['google3'] = new google_maps['Circle']({
 					'center'        : this['gridPoint2GLatLng'](coords[0]),
-					'radius'        : (((obj.tileSource['size']['width'] * zoom_a) / zoom_b) * mapapiShape['radius']()),
+					'radius'        : mapapiShape['radius']() / (27500.0 / this['gridConfig']['size']['width']),
 					'strokeColor'   : rgb,
 					'strokeOpacity' : alpha,
 					'fillColor'     : fillrgb,
@@ -454,7 +464,7 @@
 					'strokeWidth'   : mapapiShape['lineWidth']()
 				});
 				mapapiShape['google3']['setMap'](this['vendorContent']);
-			}*/else if(mapapiShape instanceof polygon || mapapiShape.prototype instanceof polygon){
+			}else if(mapapiShape instanceof polygon || mapapiShape.prototype instanceof polygon){
 				path = [];
 				for(var j=0;j<coords['length'];++j){
 					path['push'](this['gridPoint2GLatLng'](coords[j]));
