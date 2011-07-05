@@ -51,7 +51,7 @@
 			menu        = this['addSidebar']('Menu', new mapapiui['sidebar']()),
 			menuHideShow  = createElement('div'),
 			menuMinimised = false,
-			zoomcontrol = this['addSidebar']('Zoom Control', new mapapiui['sidebar']()),
+			zoomcontrol   = createElement('li'),
 			zoomin        = createElement('p'),
 			zoomout       = createElement('p')
 		;
@@ -67,7 +67,7 @@
 		menuHideShow['onclick'] = toggleMenu;
 		menu['appendChild'](menuHideShow);
 
-		empty(zoomcontrol);
+		addClass(zoomcontrol, 'zoomcontrol');
 		appendChild(zoomin , createText('+'));
 		appendChild(zoomout, createText('–'));
 		function changeZoom(level){
@@ -89,6 +89,9 @@
 		};
 		appendChild(zoomcontrol, zoomin);
 		appendChild(zoomcontrol, zoomout);
+		appendChild(this['sidebarsContainer'], zoomcontrol);
+
+		mapapi['events']['fire']('uiready',{'ui':obj});
 	}
 	minimalistUI.prototype = new mapapiui;
 	minimalistUI.prototype['constructor'] = minimalistUI;
@@ -98,39 +101,6 @@
 	minimalistUI.prototype['css'] = [
 		'ui/minimalist.css'
 	];
-
-	minimalistUI.prototype['sidebar'] = function(sidebar, create){
-		var
-			result = mapapiui.prototype['sidebar']['apply'](this, arguments),
-			create = !!create,
-			found = false
-		;
-		if(create && sidebar['toLowerCase']() == 'menu'){
-			for(var i=0;i<result['childNodes']['length'];++i){
-				found = hasClass(result['childNodes'][i], 'toggle-menu');
-				if(found){
-					break;
-				}
-			}
-			if(!found){
-				var
-					menuHideShow = createElement('div'),
-					menuMinimised = false
-				;
-				function toggleMenu(){
-					menuMinimised = !menuMinimised;
-					mapapi['utils'][menuMinimised ? 'addClass' : 'delClass'](result, 'minimised');
-					menuHideShow['title'] = menuMinimised ? 'Show' : 'Hide';
-					empty(menuHideShow)['appendChild'](createText(menuMinimised ? '«' : '»'));
-				}
-				addClass(menuHideShow,'toggle-menu');
-				toggleMenu();
-				menuHideShow['onclick'] = toggleMenu;
-				result['appendChild'](menuHideShow);			
-			}
-		}
-		return result;
-	}
 	
 
 	mapapi['userinterfaces'][minimalistUI.prototype.name ] = minimalistUI;
