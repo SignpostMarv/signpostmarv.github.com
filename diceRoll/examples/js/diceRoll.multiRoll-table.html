@@ -22,6 +22,7 @@ domready(function(){
 		start = 0,
 		fin = 0,
 		proc = 0,
+		rend = 0,
 		genOutput = function(){
 			while(output.hasChildNodes()){
 				output.removeChild(output.firstChild);
@@ -48,25 +49,7 @@ domready(function(){
 				}
 				results = resultIndex;
 				results.sort(function(a,b){ return a-b;});
-				proc = new Date().getTime();
-				var
-					rollTimeTr = document.createElement('tr'),
-					rollTimeTh = document.createElement('th'),
-					rollTimeTd = document.createElement('td'),
-					procTimeTr = document.createElement('tr'),
-					procTimeTh = document.createElement('th'),
-					procTimeTd = document.createElement('td')
-				;
-				rollTimeTh.appendChild(document.createTextNode('Time to roll:'));
-				rollTimeTd.appendChild(document.createTextNode((fin - start) + 'ms'));
-				procTimeTh.appendChild(document.createTextNode('Time to process:'));
-				procTimeTd.appendChild(document.createTextNode((proc - fin) + 'ms'));
-				rollTimeTr.appendChild(rollTimeTh);
-				rollTimeTr.appendChild(rollTimeTd);
-				procTimeTr.appendChild(procTimeTh);
-				procTimeTr.appendChild(procTimeTd);
-				output.appendChild(rollTimeTr);
-				output.appendChild(procTimeTr);
+				proc = (new Date()).getTime();
 				for(var i=0;i<results.length;++i){
 					var
 						tr = document.createElement('tr'),
@@ -78,8 +61,35 @@ domready(function(){
 					td.appendChild(document.createTextNode(resultsCheck[resultIndex.indexOf(results[i])]));
 					tr.appendChild(th);
 					tr.appendChild(td);
-					output.appendChild(tr);
+					output.appendChild(tr, output.firstChild);
 				}
+				rend = (new Date()).getTime();
+				var
+					rollTimeTr = document.createElement('tr'),
+					rollTimeTh = document.createElement('th'),
+					rollTimeTd = document.createElement('td'),
+					procTimeTr = document.createElement('tr'),
+					procTimeTh = document.createElement('th'),
+					procTimeTd = document.createElement('td'),
+					renderTr = document.createElement('tr'),
+					renderTh = document.createElement('th'),
+					renderTd = document.createElement('td')
+				;
+				rollTimeTh.appendChild(document.createTextNode('Time to roll:'));
+				rollTimeTd.appendChild(document.createTextNode((fin - start) + 'ms'));
+				procTimeTh.appendChild(document.createTextNode('Time to process:'));
+				procTimeTd.appendChild(document.createTextNode((proc - fin) + 'ms'));
+				rollTimeTr.appendChild(rollTimeTh);
+				rollTimeTr.appendChild(rollTimeTd);
+				procTimeTr.appendChild(procTimeTh);
+				procTimeTr.appendChild(procTimeTd);
+				renderTh.appendChild(document.createTextNode('Time to render'));
+				renderTd.appendChild(document.createTextNode((rend - proc) + 'ms'));
+				renderTr.appendChild(renderTh);
+				renderTr.appendChild(renderTd);
+				output.insertBefore(rollTimeTr, output.firstChild);
+				output.insertBefore(procTimeTr, rollTimeTr.nextSibling);
+				output.insertBefore(renderTr, procTimeTr.nextSibling);
 			}catch(e){
 				alert(e);
 			}
