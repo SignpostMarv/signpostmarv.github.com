@@ -12,12 +12,16 @@ domready(function(){
 		spec = form.querySelector('input'),
 		button = form.querySelector('button'),
 		output = form.querySelector('#output'),
+		roller = form.querySelector('#roller'),
 		roll = undefined,
 		regex = diceRoll.regex.toString(),
 		regex = '^' + regex.substring(1, regex.length - 1) + '$',
 		resultIndex = [],
 		resultsCheck = [],
 		results = [],
+		start = 0,
+		fin = 0,
+		proc = 0,
 		genOutput = function(){
 			while(output.hasChildNodes()){
 				output.removeChild(output.firstChild);
@@ -28,7 +32,9 @@ domready(function(){
 				}
 				resultIndex = [];
 				resultsCheck = [];
-				results = roll.multiRoll(10000000);
+				start = (new Date()).getTime();
+				results = roll.multiRoll(parseInt(roller.value,10));
+				fin = (new Date()).getTime();
 				for(var i=0;i<results.length;++i){
 					var
 						pos = resultIndex.indexOf(results[i])
@@ -42,6 +48,25 @@ domready(function(){
 				}
 				results = resultIndex;
 				results.sort(function(a,b){ return a-b;});
+				proc = new Date().getTime();
+				var
+					rollTimeTr = document.createElement('tr'),
+					rollTimeTh = document.createElement('th'),
+					rollTimeTd = document.createElement('td'),
+					procTimeTr = document.createElement('tr'),
+					procTimeTh = document.createElement('th'),
+					procTimeTd = document.createElement('td')
+				;
+				rollTimeTh.appendChild(document.createTextNode('Time to roll:'));
+				rollTimeTd.appendChild(document.createTextNode((fin - start) + 'ms'));
+				procTimeTh.appendChild(document.createTextNode('Time to process:'));
+				procTimeTd.appendChild(document.createTextNode((proc - fin) + 'ms'));
+				rollTimeTr.appendChild(rollTimeTh);
+				rollTimeTr.appendChild(rollTimeTd);
+				procTimeTr.appendChild(procTimeTh);
+				procTimeTr.appendChild(procTimeTd);
+				output.appendChild(rollTimeTr);
+				output.appendChild(procTimeTr);
 				for(var i=0;i<results.length;++i){
 					var
 						tr = document.createElement('tr'),
@@ -70,6 +95,7 @@ domready(function(){
 <form>
 	<ul>
 		<li><label for=spec>Specification: </label><input disabled required id=spec value="2d+10"></li>
+		<li><label for=roller>Roller: </label><input type=number min=1 id=roller value=1000000></li>
 		<li><button type=submit disabled>Roll</button></li>
 	</ul>
 	<table>
