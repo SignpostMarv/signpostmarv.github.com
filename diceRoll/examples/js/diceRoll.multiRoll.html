@@ -1,0 +1,46 @@
+<html>
+<head>
+<title>diceRoll.js example</title>
+<script src="./domready.js"></script>
+<script src="../../build/diceRoll.min.js"></script>
+</head>
+<body>
+<script>
+domready(function(){
+	var
+		form = document.forms[0],
+		spec = form.querySelector('input'),
+		button = form.querySelector('button'),
+		output = form.querySelector('output'),
+		roll = undefined,
+		regex = diceRoll.regex.toString(),
+		regex = '^' + regex.substring(1, regex.length - 1) + '$',
+		genOutput = function(){
+			while(output.hasChildNodes()){
+				output.removeChild(output.firstChild);
+			}
+			try{
+				if(roll == undefined || spec.value != roll._spec){
+					roll = new diceRoll(spec.value);
+				}
+				output.appendChild(document.createTextNode(roll.multiRoll(10000).join("\n")));
+			}catch(e){
+				output.appendChild(document.createTextNode(e));
+			}
+			return false;
+		}
+	;
+	button.disabled = spec.disabled = false;
+	spec.pattern = regex;
+	form.onsubmit = genOutput;
+	genOutput();
+})
+</script>
+<form>
+	<ul>
+		<li><label for=spec>Specification: </label><input disabled required id=spec value="2d+10"></li>
+		<li><button type=submit disabled>Roll</button> <output for=spec></output></li>
+	</ul>
+</form>
+</body>
+</html>
