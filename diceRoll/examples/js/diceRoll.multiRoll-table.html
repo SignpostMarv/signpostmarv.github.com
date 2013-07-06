@@ -13,6 +13,7 @@ domready(function(){
 		button = form.querySelector('button'),
 		output = form.querySelector('#output'),
 		roller = form.querySelector('#roller'),
+		forceArrayObj = form.querySelector('#force'),
 		roll = undefined,
 		regex = diceRoll.regex.toString(),
 		regex = '^' + regex.substring(1, regex.length - 1) + '$',
@@ -34,7 +35,7 @@ domready(function(){
 				resultIndex = [];
 				resultsCheck = [];
 				start = (new Date()).getTime();
-				results = roll.multiRoll(parseInt(roller.value,10));
+				results = roll.multiRoll(parseInt(roller.value,10), (!forceArrayObj.disabled && forceArrayObj.checked));
 				fin = (new Date()).getTime();
 				for(var i=0;i<results.length;++i){
 					var
@@ -96,7 +97,11 @@ domready(function(){
 			return false;
 		}
 	;
-	button.disabled = spec.disabled = false;
+	button.disabled = spec.disabled = roller.disabled = forceArrayObj.disabled = false;
+	if(!Int32Array || !ArrayBuffer){
+		forceArrayObj.checked = false;
+		forceArrayObj.disabled = true;
+	}
 	spec.pattern = regex;
 	form.onsubmit = genOutput;
 	genOutput();
@@ -105,7 +110,8 @@ domready(function(){
 <form>
 	<ul>
 		<li><label for=spec>Specification: </label><input disabled required id=spec value="2d+10"></li>
-		<li><label for=roller>Roller: </label><input type=number min=1 id=roller value=1000000></li>
+		<li><label for=roller>Roller: </label><input disabled type=number min=1 id=roller value=1000000></li>
+		<li><label for=force>Force Array object instead of Int32Array where supported: </label><input disabled type=checkbox id=force></li>
 		<li><button type=submit disabled>Roll</button></li>
 	</ul>
 	<table>
