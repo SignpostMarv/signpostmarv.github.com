@@ -9,10 +9,10 @@
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in
 * all copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,7 +27,8 @@
 		EventTarget = window['EventTarget'],
 		mapapi      = window['mapapi'],
 		gridPoint   = mapapi['gridPoint'],
-		bounds      = mapapi['bounds']
+		bounds      = mapapi['bounds'],
+		ctype_digit = mapapi['utils']['ctype_digit']
 	;
 	if(mapapi == undefined){
 		throw 'mapapi.js is not loaded.';
@@ -108,6 +109,16 @@
 			return this['bounds']['intersects'](value);
 		}
 		return false;
+	}
+
+	shape['isShape'] = function(e){
+		return (
+			e.prototype instanceof shape ||
+			e instanceof poly ||
+			e instanceof rectangle ||
+			e instanceof square ||
+			e instanceof circle
+		);
 	}
 
 	mapapi['shape'] = shape;
@@ -231,6 +242,44 @@
 		return this['opts']['fillStyle'];
 	}
 
+	poly.prototype['withinShape'] = function(pos){
+		var
+			pos    = gridPoint['fuzzy'](pos),
+			obj    = this,
+			coords = obj['opts']['coords'],
+			out    = obj['bounds']['sw']
+		;
+		// transposed from http://stackoverflow.com/a/1968345/1498831
+		var
+			p0_x = out['x'] - 1,
+			p0_y = out['y'] - 1,
+			p1_x = pos['x'],
+			p1_y = pos['y'],
+			s1_x = p1_x - p0_x,
+			s1_y = p1_y - p0_y,
+			i = 0,
+			s,t
+		;
+		for(var j=0;j<coords['length'];++j){
+			var
+				k    = (j == (coords['length'] - 1)) ? 0 : j + 1,
+				p2_x = coords[j]['x'],
+				p2_y = coords[j]['y'],
+				p3_x = coords[k]['x'],
+				p3_y = coords[k]['y'],
+				s2_x = p3_x - p2_x,
+				s2_y = p3_y - p2_y
+			;
+			s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y);
+			t = ( s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
+			if(s >= 0 && s <= 1 && t >= 0 && t <= 1){
+				++i;
+			}
+		}
+
+		return (i != 0 && (i % 2) == 1);
+	}
+
 	shape['polygon'] = poly;
 
 	function rectangle(options){
@@ -352,8 +401,8 @@
 				this['fire']('changedstrokestyle');
 			}
 		}
-		if(typeof lineWidth == 'number'){
-			lineWidth = Math.max(0,lineWidth);
+		if(ctype_digit(lineWidth)){
+			lineWidth = Math.max(0,lineWidth * 1);
 			var diff = this['opts']['lineWidth'] != lineWidth;
 			this['opts']['lineWidth'] = lineWidth;
 			if(diff){
@@ -381,8 +430,103 @@
 
 	shape['line'] = line;
 
+	function nCurve(options){
+		line['call'](this, options);
+	}
+
+	extend(nCurve, line);
+
+	nCurve.prototype['options'] = function(options){
+		var
+			options     = options || {},
+			coords      = options['coords'],
+			strokeStyle = options['strokeStyle'],
+			lineWidth   = options['lineWidth']
+		;
+		if(options['coords'] != undefined){
+			if(coords instanceof Array){
+				if(coords['length'] >= 3){
+					for(var i=0;i<coords['length'];++i){
+						coords[i] = gridPoint['fuzzy'](coords[i]);
+					}
+					this['opts']['coords'] = coords;
+					this['fire']('changedcoords');
+				}else{
+					throw 'mapapi.shape.nCurve requires two or more coordinates';
+				}
+			}else{
+				throw 'mapapi.shape.nCurve requires coordinates be passed as an array';
+			}
+		}
+		if(typeof strokeStyle == 'string'){
+			var diff = this['opts']['strokeStyle'] != strokeStyle;
+			this['opts']['strokeStyle'] = strokeStyle;
+			if(diff){
+				this['fire']('changedstrokestyle');
+			}
+		}
+		if(ctype_digit(lineWidth)){
+			lineWidth = Math.max(0,lineWidth * 1);
+			var diff = this['opts']['lineWidth'] != lineWidth;
+			this['opts']['lineWidth'] = lineWidth;
+			if(diff){
+				this['fire']('changedlinewidth');
+			}
+		}
+		if(options['clickable'] != undefined){
+			this['opts']['clickable'] = !!options['clickable'];
+		}
+	}
+
+	nCurve.prototype['coords'] = function(granularity){
+		var
+			granularity = Math.max(10, parseInt(granularity || 100)),
+			coords      = line.prototype['coords']['call'](this)
+			curve       = [gridPoint['fuzzy']([
+				coords[0]['x'],
+				coords[0]['y']
+			])]
+		;
+		for(var j=0;j<1;j+=0.01){
+			var
+				lerps = [
+					gridPoint['lerp'](coords[0], coords[2], j)
+				],
+				x =0
+			;
+			for(var k=2;k<(coords['length'] - 2);++k){
+				lerps.push(gridPoint['lerp'](coords[k], coords[k+1], j));
+			}
+			lerps.push(gridPoint['lerp'](coords[coords['length'] - 1], coords[1], j));
+			while(lerps.length > 1){
+				var
+					lerp2 = new Array(lerps.length - 1)
+				;
+				for(var k=0;k<(lerps.length - 1);++k){
+					lerp2[k] = (gridPoint['lerp'](lerps[k + 0], lerps[k + 1], j));
+				}
+				lerps = lerp2;
+			}
+			curve.push(lerps[0]);
+		}
+		curve.push(
+			gridPoint['fuzzy']([
+				coords[1]['x'],
+				coords[1]['y']
+			])
+		);
+		return curve;
+	}
+
+	shape['nCurve'] = nCurve;
+	
+
 	function circle(options){
 		shape['call'](this, options);
+		this['bounds'] = gridPoint['fuzzy']([
+			this['opts']['coords'][0]['x'] - this['opts']['radius'],
+			this['opts']['coords'][0]['y'] - this['opts']['radius']
+		]);
 	}
 
 	extend(circle, shape);

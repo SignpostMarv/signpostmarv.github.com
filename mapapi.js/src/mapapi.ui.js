@@ -9,10 +9,10 @@
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in
 * all copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -94,7 +94,7 @@
 				renderer = mapapi['renderers']['google3'];
 			}
 			if(renderer == undefined){
-				throw 'Could not locate any renderers';				
+				throw 'Could not locate any renderers';
 			}
 			renderer = new renderer({
 				'container'  : rendererNode,
@@ -113,7 +113,9 @@
 		container['appendChild'](sidebarsContainer);
 
 		addClass(container, 'mapapi-ui');
-		addClass(container, 'mapapi-ui-' + this['name']['toLowerCase']()['replace'](/\s+/g,''));
+		if(this['name']){
+			addClass(container, 'mapapi-ui-' + this['name']['toLowerCase']()['replace'](/\s+/g,''));
+		}
 		addClass(rendererNode, 'mapapi-ui-renderer');
 		addClass(sidebarsContainer, 'mapapi-ui-sidebars');
 
@@ -141,7 +143,7 @@
 			scripts = head.getElementsByTagName('script'),
 			links   = head.getElementsByTagName('link'),
 			regexp  = /./,
-			uiregex = /(mapapi\.ui\.js)$/,
+			uiregex = /(mapapi\.ui\.js|mapapi-complete.js)$/,
 			exregex = /^https?/,
 			styles  = [],
 			css     = [],
@@ -248,8 +250,10 @@
 					li['appendChild'](h1);
 					li['appendChild'](ul);
 					addClass(li, text['toLowerCase']()['replace'](/[^A-z\d]+/g,''));
+					addClass(li, 'childless');
 					subsection['DOM'] = ul;
 					this['DOM']['appendChild'](li);
+					delClass(this['DOM']['parentNode'], 'childless');
 					subsection['addListener']('sectionsadded', sectionsAddedListener);
 					subsection['addListener']('sectionsremoved', sectionsRemovedListener);
 				}
@@ -258,14 +262,24 @@
 	}
 	function sectionsRemovedListener(e){
 		var
-			sections = e['sections']
+			sections = e['sections'],
+			parents  = []
 		;
 		if(sections && sections instanceof Array){
 			for(var i=0;i<sections['length'];++i){
 				var
-					DOM = sections[i]['DOM']['parentNode']
+					DOM    = sections[i]['DOM']['parentNode'],
+					parent = DOM['parentNode']
 				;
-				DOM['parentNode']['removeChild'](DOM);
+				if(parents['indexOf'](parent) == -1){
+					parents.push(parent);
+				}
+				parent['removeChild'](DOM);
+			}
+			for(var i=0;i<parents.length;++i){
+				if(!parents[i]['hasChildNodes']()){
+					addClass(parents[i], 'childless');
+				}
 			}
 		}
 	}
@@ -340,12 +354,21 @@
 
 		obj['DOM'] = undefined;
 		obj['addListener']('content_changed', function(){
-			obj['DOM'] = obj['content2DOM']();
-			for(var i=0;i<DOMclasses['length'];++i){
-				addClass(obj['DOM'], DOMclasses[i]);
-			}
-			if(obj['opts']['open'] == true){
-				obj['open'](obj['ui']);
+			if(!obj['DOM']){
+				obj['DOM'] = obj['content2DOM']();
+				for(var i=0;i<DOMclasses['length'];++i){
+					addClass(obj['DOM'], DOMclasses[i]);
+				}
+			}else{
+				for(var i=0;i<obj['DOM']['childNodes']['length'];++i){
+					obj['DOM']['removeChild'](obj['DOM']['childNodes'][i]);
+				}
+				var
+					newDOM = obj['content2DOM']()['childNodes']
+				;
+				for(var i=0;i<newDOM['length'];++i){
+					obj['DOM']['appendChild'](newDOM[i]);
+				}
 			}
 		});
 	}
@@ -867,7 +890,7 @@
 		;
 		for(var i=0;i<arguments['length'];++i){
 			if(!(arguments[i] instanceof section || (arguments[i].prototype != undefined && arguments[i].prototype instanceof section))){
-				throw 'sub-section should be instanceof mapapi.ui.section';			
+				throw 'sub-section should be instanceof mapapi.ui.section';
 			}else if(this['sections']['indexOf'](arguments[i]) == -1){
 				addThese['push'](arguments[i]);
 			}
@@ -885,7 +908,7 @@
 		;
 		for(var i=0;i<arguments['length'];++i){
 			if(!(arguments[i] instanceof section || (arguments[i].prototype != undefined && arguments[i].prototype instanceof section))){
-				throw 'sub-section should be instanceof mapapi.ui.section';			
+				throw 'sub-section should be instanceof mapapi.ui.section';
 			}else if(this['sections']['indexOf'](arguments[i]) > -1){
 				removeThese['push'](arguments[i]);
 			}

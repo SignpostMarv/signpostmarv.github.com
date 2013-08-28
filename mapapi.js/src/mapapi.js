@@ -9,10 +9,10 @@
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in
 * all copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -35,6 +35,22 @@
 			}
 			return -1;
 		}
+	}
+
+	if (!Array.prototype.forEach) {
+		Array.prototype['forEach'] = function(fn, scope){
+			'use strict';
+			var
+				obj = this,
+				scope = scope || obj,
+				i, len
+			;
+			for(i=0,len = obj['length'];i<len;++i){
+				if(i in obj){
+					fn['call'](scope, obj[i], i, obj);
+				}
+			}
+		};
 	}
 
 	var
@@ -85,6 +101,9 @@
 				'ctype_digit' : function(value){
 					return /^\d+$/.test(value + '');
 				},
+				'ctype_float' : function(value){
+					return /^\-?(\d+|\d*\.\d+)$/.test(value + '');
+				},
 				'createElement' : function(element){
 					return document['createElement'](element);
 				},
@@ -133,7 +152,8 @@
 		gridPoint       = mapapi['gridPoint'],
 		bounds          = mapapi['bounds'],
 		windowDiscovery = mapapi['utils']['windowDiscovery'],
-		ctype_digit     = mapapi['utils']['ctype_digit']
+		ctype_digit     = mapapi['utils']['ctype_digit'],
+		ctype_float     = mapapi['utils']['ctype_float']
 	;
 
 	window['IndexedDB']      = windowDiscovery(['IndexedDB', 'mozIndexedDB', 'webkitIndexedDB']);
@@ -188,8 +208,10 @@
 
 	gridPoint['fuzzy'] = function(value){
 		if(!(value instanceof gridPoint)){
-			if(ctype_digit(value['x']) && ctype_digit(value['y'])){
+			if(ctype_float(value['x']) && ctype_float(value['y'])){
 				value = new gridPoint(value['x'] * 1, value['y'] * 1);
+			}else if(value instanceof Array && value['length'] == 2 && ctype_float(value[0]) && ctype_float(value[1])){
+				value = new gridPoint(value[0] * 1, value[1] * 1);
 			}else{
 				throw 'value was not an instance of mapapi.gridPoint and was not an object with appropriate properties';
 			}
@@ -197,13 +219,41 @@
 		return value;
 	}
 
+	gridPoint['lerp'] = function(a, b, c){
+		var
+			a = gridPoint['fuzzy'](a),
+			b = gridPoint['fuzzy'](b),
+			c = Math.max(0, Math.min(1, parseFloat(c)))
+		;
+		return gridPoint['lerpFloats'](a['x'], a['y'], b['x'], b['y'], c);
+	}
+
+	gridPoint['lerpFloats'] = function(x1, y1, x2, y2, c){
+		var
+			x1 = parseFloat(x1),
+			y1 = parseFloat(y1),
+			x2 = parseFloat(x2),
+			y2 = parseFloat(y2)
+		;
+		return new gridPoint(
+			x1 + ((x2 - x1) * c),
+			y1 + ((y2 - y1) * c)
+		)
+	}
+
 	gridPoint.prototype['equals'] = function(value){
 		return (value instanceof gridPoint && value['x'] == this['x'] && value['y'] == this['y']);
 	}
 
 	gridPoint.prototype['distance'] = function(value){
-		value = gridPoint['fuzzy'](value);
-		return Math.sqrt((Math.pow(this['x'], 2) - Math.pow(value['x'], 2)) + (Math.pow(this['y'], 2) - Math.pow(value['y'], 2)));
+		var
+			value = gridPoint['fuzzy'](value),
+			relative = gridPoint['fuzzy']([
+				value['x'] - this['x'],
+				value['y'] - this['y']
+			])
+		;
+		return Math.sqrt(Math.abs(Math.pow(relative['x'], 2) + Math.pow(relative['y'], 2)));
 	}
 
 	if(localStorage && JSON){
@@ -220,6 +270,32 @@
 		}
 
 		mapapi['storage'] = new storage;
+	}
+
+	var
+		testNode      = window['document']['createElement']('a'),
+		testClassList = testNode && testNode['classList'] ? testNode['classList'] : false,
+		testClassList = testClassList['add'] && testClassList['remove'] && testClassList['contains']
+	;
+	if(testClassList){
+		mapapi['utils']['addClass'] = function(node, className){
+			if((className + '')['indexOf'](' ') > 0){
+				className['split'](' ')['forEach'](function(e){
+					mapapi['utils']['addClass'](node, e);
+				});
+			}else{
+				node['classList']['add'](className);
+			}
+		};
+		mapapi['utils']['delClass'] = function(node, className){
+			node['classList']['remove'](className);
+		};
+		mapapi['utils']['hasClass'] = function(node, className){
+			return node['classList']['contains'](className);
+		};
+		mapapi['utils']['toggleClass'] = function(node, className){
+			return node['classList']['toggle'](className);
+		};
 	}
 
 	window['mapapi'] = mapapi;

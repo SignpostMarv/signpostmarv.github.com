@@ -9,10 +9,10 @@
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in
 * all copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,7 +28,6 @@
 		document       = window['document'],
 		mapapi         = window['mapapi'],
 		IndexedDB      = window['IndexedDB'],
-		IDBTransaction = window['IDBTransaction'],
 		Date           = window['Date'],
 		cacheTimeout   = {
 			'pos2region' : 86400
@@ -42,7 +41,7 @@
 				deleteThese = [],
 				now         = Math.floor(new Date()['getTime']() / 1000)
 			;
-			db['transaction']('pos2region', IDBTransaction['READ'])['objectStore']('pos2region')['openCursor']()['onsuccess'] = function(e){
+			db['transaction']('pos2region')['objectStore']('pos2region')['openCursor']()['onsuccess'] = function(e){
 				var
 					cursor = e['target']['result'],
 					value  = cursor ? cursor['value'] : undefined
@@ -61,7 +60,7 @@
 							}
 						}
 						function b(){
-							db['transaction']('pos2region', IDBTransaction['READ_WRITE'])['objectStore']('pos2region')['delete'](deleteThese[i++])['onsuccess'] = a;
+							db['transaction']('pos2region', 'readwrite')['objectStore']('pos2region')['delete'](deleteThese[i++])['onsuccess'] = a;
 						}
 						a();
 					}
@@ -96,6 +95,14 @@
 		}
 		if(options['region2pos'] != undefined){
 			obj['API']['region2pos'] = options['region2pos'];
+		}
+		if(
+			options['pos2region'] == undefined &&
+			options['region2pos'] == undefined &&
+			options['polyregion'] != undefined &&
+			options['polyregion'] instanceof mapapi['polyregion']
+		){
+			obj['API'] = options['polyregion']
 		}
 
 		var

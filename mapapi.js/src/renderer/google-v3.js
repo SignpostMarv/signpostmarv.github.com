@@ -60,7 +60,8 @@
 		rectangle  = shape['rectangle'],
 		square     = shape['square'],
 		line       = shape['line'],
-		circle     = shape['circle']
+		circle     = shape['circle'],
+		nCurve     = shape['nCurve']
 	;
 
 	euclid.prototype['fromLatLngToPoint'] = function(latlng, opt){
@@ -347,15 +348,6 @@
 		return new mapapi['bounds'](obj['GLatLng2gridPoint'](bounds['getSouthWest']()), obj['GLatLng2gridPoint'](bounds['getNorthEast']()));
 	}
 
-	function mapapi2google(mapapiShape){
-		if(!mapapiShape){
-			throw 'Shape not specified';
-		}
-		if(mapapiShape.prototype instanceof mapapi['shape']){
-			
-		}
-	}
-
 	function color2hex(){
 		var
 			r = arguments[1] * 1,
@@ -370,7 +362,7 @@
 
 	google3.prototype['addShape'] = function(){
 		var
-			supported = [square, rectangle, line, polygon, circle],
+			supported = [square, rectangle, line, polygon, circle, nCurve],
 			isSupported = false,
 			mapapiShape,
 			path,
@@ -408,6 +400,7 @@
 			function setcolors(){
 				if(rgbRegex['test'](strokeStyle)){
 					rgb = strokeStyle.replace(rgbRegex,color2hex);
+					alpha = 1;
 				}else if(rgbaRegex['test'](strokeStyle)){
 					rgb = strokeStyle.replace(rgbaRegex,color2hex);
 					alpha = strokeStyle.replace(rgbaRegex,function(){
