@@ -22,6 +22,7 @@
 * THE SOFTWARE.
 */
 (function(window, undefined){
+	'use strict';
 	var
 		Array = window['Array']
 	;
@@ -39,7 +40,6 @@
 
 	if (!Array.prototype.forEach) {
 		Array.prototype['forEach'] = function(fn, scope){
-			'use strict';
 			var
 				obj = this,
 				scope = scope || obj,
@@ -55,8 +55,6 @@
 
 	var
 		EventTarget   = window['EventTarget'],
-		localStorage  = window['localStorage'],
-		JSON          = window['JSON'],
 		mapapi = {
 			'utils' : {
 				'addClass' : function(node, className){
@@ -156,10 +154,6 @@
 		ctype_float     = mapapi['utils']['ctype_float']
 	;
 
-	window['IndexedDB']      = windowDiscovery(['IndexedDB', 'mozIndexedDB', 'webkitIndexedDB']);
-	window['IDBTransaction'] = windowDiscovery(['IDBTransaction', 'webkitIDBTransaction']);
-	window['IDBObjectStore'] = windowDiscovery(['IDBObjectStore', 'webkitIDBObjectStore']);
-
 	bounds.prototype['isWithin'] = function(x, y){
 		if(x instanceof gridPoint){
 			y = x['y'];
@@ -223,22 +217,16 @@
 		var
 			a = gridPoint['fuzzy'](a),
 			b = gridPoint['fuzzy'](b),
-			c = Math.max(0, Math.min(1, parseFloat(c)))
-		;
-		return gridPoint['lerpFloats'](a['x'], a['y'], b['x'], b['y'], c);
-	}
-
-	gridPoint['lerpFloats'] = function(x1, y1, x2, y2, c){
-		var
-			x1 = parseFloat(x1),
-			y1 = parseFloat(y1),
-			x2 = parseFloat(x2),
-			y2 = parseFloat(y2)
+			c = +Math.max(0, Math.min(1, c * 1)),
+			x1 = a['x'],
+			y1 = a['y'],
+			x2 = b['x'],
+			y2 = b['y']
 		;
 		return new gridPoint(
 			x1 + ((x2 - x1) * c),
 			y1 + ((y2 - y1) * c)
-		)
+		);
 	}
 
 	gridPoint.prototype['equals'] = function(value){
@@ -246,6 +234,10 @@
 	}
 
 	gridPoint.prototype['distance'] = function(value){
+		return Math.sqrt(this['distanceSquared'](value));
+	}
+
+	gridPoint.prototype['distanceSquared'] = function(value){
 		var
 			value = gridPoint['fuzzy'](value),
 			relative = gridPoint['fuzzy']([
@@ -253,23 +245,23 @@
 				value['y'] - this['y']
 			])
 		;
-		return Math.sqrt(Math.abs(Math.pow(relative['x'], 2) + Math.pow(relative['y'], 2)));
+		return Math.abs(Math.pow(relative['x'], 2) + Math.pow(relative['y'], 2));
 	}
 
-	if(localStorage && JSON){
-		function storage(){
-			this['storage'] = localStorage;
-		}
+	gridPoint.prototype['distanceGT'] = function(value, than){
+		return gridPoint.prototype['distanceSquared'] > Math.pow(parseFloat(than), 2);
+	}
 
-		storage.prototype['getItem'] = function(item){
-			return JSON['parse'](this['storage']['getItem'](item));
-		}
+	gridPoint.prototype['distanceGTEQ'] = function(value, than){
+		return gridPoint.prototype['distanceSquared'] >= Math.pow(parseFloat(than), 2);
+	}
 
-		storage.prototype['setItem'] = function(item, value){
-			return this['storage']['setItem'](item, JSON.stringify(value));
-		}
+	gridPoint.prototype['distanceLT'] = function(value, than){
+		return gridPoint.prototype['distanceSquared'] < Math.pow(parseFloat(than), 2);
+	}
 
-		mapapi['storage'] = new storage;
+	gridPoint.prototype['distanceLTEQ'] = function(value, than){
+		return gridPoint.prototype['distanceSquared'] <= Math.pow(parseFloat(than), 2);
 	}
 
 	var

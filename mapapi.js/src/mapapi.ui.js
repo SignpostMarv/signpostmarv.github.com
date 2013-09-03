@@ -22,6 +22,7 @@
 * THE SOFTWARE.
 */
 (function(window, undefined){
+	'use strict';
 	window['mapapi'] = window['mapapi'] || {};
 	var
 		document      = window['document'],
@@ -49,8 +50,10 @@
 	}
 
 	var
-		uiID = 0
+		uiID = 0,
+		uiregex = /(mapapi\.ui\.js|mapapi-complete.js)$/
 	;
+
 	function ui(options){
 		if(options == undefined){
 			return;
@@ -61,15 +64,10 @@
 			container         = options['container'],
 			renderer          = options['renderer'],
 			gridConfig        = options['gridConfig'],
-			markerMngr        = options['markerManager'],
 			rendererNode      = createElement('div'),
-			sidebarsContainer = createElement('ul')
+			sidebarsContainer = createElement('ul'),
+			mapuijs           = this.jsPath()
 		;
-		if(markerMngr == undefined){
-			markerMngr = new markerManager;
-		}else if(!(markerMngr instanceof markerManager)){
-			throw 'marker manager must be an instance of mapapi.markerManager';
-		}
 		if(container == undefined){
 			container = document['body'];
 		}
@@ -125,7 +123,11 @@
 		obj['sidebars']          = {};
 		obj['sidebarLabels']     = [];
 		obj['sidebarsContainer'] = sidebarsContainer;
-		obj['markerManager']     = markerMngr;
+		obj['markerManager']     = new markerManager({
+			'ui'                  : obj,
+			'defaultMarkerImage'  : options['defaultMarkerImage'] || mapuijs.replace(uiregex, 'ui/marker-shadows.png'),
+			'defaultMarkerAnchor' : options['defaultMarkerAnchor'] || {'x':16, 'y': 64}
+		});
 		obj['ID']                = uiID++;
 
 		obj['loadCSS']();
@@ -136,20 +138,30 @@
 		'ui.css'
 	];
 
+	ui.prototype.jsPath = function(){
+		var
+			scripts = document.querySelectorAll('head script')
+		;
+		for(var i=0;i<scripts.length;++i){
+			if(uiregex.test(scripts[i]['src'])){
+				return scripts[i]['src'];
+			}
+		}
+		throw 'Could not find mapapi.js UI file';
+	}
+
 	ui.prototype['loadCSS'] = function(){
 		var
 			obj     = this,
 			head    = document.getElementsByTagName('head')[0],
-			scripts = head.getElementsByTagName('script'),
 			links   = head.getElementsByTagName('link'),
 			regexp  = /./,
-			uiregex = /(mapapi\.ui\.js|mapapi-complete.js)$/,
 			exregex = /^https?/,
 			styles  = [],
 			css     = [],
+			mapuijs = obj.jsPath(),
 			csspath,
 			csspathregex,
-			mapuijs,
 			cssfound,
 			newcss,
 			jspath
@@ -160,43 +172,34 @@
 			}
 		}
 		links = [];
-		for(var i=0;i<scripts.length;++i){
-			if(uiregex.test(scripts[i]['src'])){
-				mapuijs = scripts[i]['src'];
-			}
+		jspath = mapuijs['replace'](uiregex,'');
+		for(var i=0;i<ui.prototype.css.length;++i){
+			css.push(ui.prototype.css[i]);
 		}
-		if(mapuijs == undefined){
-			throw 'Could not find mapapi.js UI file';
-		}else{
-			jspath = mapuijs['replace'](uiregex,'');
-			for(var i=0;i<ui.prototype.css.length;++i){
-				css.push(ui.prototype.css[i]);
+		for(var i=0;i<obj['css']['length'];++i){
+			css.push(obj['css'][i]);
+		}
+		for(var i=0;i<css.length;++i){
+			cssfound     = false;
+			csspath      = css[i];
+			csspathregex = csspath.replace(/\./g,'\.').replace(/\//g,'\/');
+			if(exregex.test(csspath)){
+				regexp.compile('/^' + csspathregex + '$/');
+			}else{
+				regexp.compile('^' + jspath.replace(/\./g,'\.').replace(/\//g,'\/') + csspathregex + '$');
 			}
-			for(var i=0;i<obj['css']['length'];++i){
-				css.push(obj['css'][i]);
+			for(var j=0;j<styles.length;++j){
+				if(regexp.test(styles[j]['href'])){
+					cssfound = true;
+					break;
+				}
 			}
-			for(var i=0;i<css.length;++i){
-				cssfound     = false;
-				csspath      = css[i];
-				csspathregex = csspath.replace(/\./g,'\.').replace(/\//g,'\/');
-				if(exregex.test(csspath)){
-					regexp.compile('/^' + csspathregex + '$/');
-				}else{
-					regexp.compile('^' + jspath.replace(/\./g,'\.').replace(/\//g,'\/') + csspathregex + '$');
-				}
-				for(var j=0;j<styles.length;++j){
-					if(regexp.test(styles[j]['href'])){
-						cssfound = true;
-						break;
-					}
-				}
-				if(!cssfound){
-					newcss = createElement('link');
-					newcss['setAttribute']('rel','stylesheet');
-					newcss['setAttribute']('type','text/css');
-					newcss['setAttribute']('href',exregex.test(csspath) ? csspath : mapuijs['replace'](uiregex,csspath));
-					head['appendChild'](newcss);
-				}
+			if(!cssfound){
+				newcss = createElement('link');
+				newcss['setAttribute']('rel','stylesheet');
+				newcss['setAttribute']('type','text/css');
+				newcss['setAttribute']('href',exregex.test(csspath) ? csspath : mapuijs['replace'](uiregex,csspath));
+				head['appendChild'](newcss);
 			}
 		}
 	}
@@ -255,6 +258,9 @@
 					this['DOM']['appendChild'](li);
 					delClass(this['DOM']['parentNode'], 'childless');
 					subsection['addListener']('sectionsadded', sectionsAddedListener);
+					if(subsection['sections'] && subsection['sections'] instanceof Array && subsection['sections']['length'] > 0){
+						subsection['fire']('sectionsadded', {'sections':subsection['sections']});
+					}
 					subsection['addListener']('sectionsremoved', sectionsRemovedListener);
 				}
 			}
@@ -294,7 +300,6 @@
 			throw 'sidebar name is empty';
 		}
 		var
-			obj = this,
 			li  = createElement('li'),
 			ul  = createElement('ul')
 		;
@@ -344,7 +349,8 @@
 		EventTarget['call'](obj);
 
 		obj['opts'] = {
-			'open' : false
+			'shown' : false,
+			'open'  : false
 		};
 
 		obj['rendererEvents'] = {
@@ -354,21 +360,21 @@
 
 		obj['DOM'] = undefined;
 		obj['addListener']('content_changed', function(){
-			if(!obj['DOM']){
-				obj['DOM'] = obj['content2DOM']();
-				for(var i=0;i<DOMclasses['length'];++i){
-					addClass(obj['DOM'], DOMclasses[i]);
-				}
-			}else{
-				for(var i=0;i<obj['DOM']['childNodes']['length'];++i){
-					obj['DOM']['removeChild'](obj['DOM']['childNodes'][i]);
-				}
-				var
-					newDOM = obj['content2DOM']()['childNodes']
-				;
-				for(var i=0;i<newDOM['length'];++i){
-					obj['DOM']['appendChild'](newDOM[i]);
-				}
+			var
+				oldDOM = obj['DOM']
+			;
+			addClass(obj['content2DOM'](), DOMclasses['join'](' '));
+			if(obj['DOM']['parentNode']){
+				obj['content2DOM'](true);
+			}
+			if(oldDOM && oldDOM != obj['DOM'] && oldDOM['parentNode']){
+				oldDOM['parentNode']['replaceChild'](obj['DOM'], oldDOM);
+			}
+			if(this['opts']['shown']){
+				this['show']();
+			}
+			if(this['opts']['open'] && this['ui']){
+				this['open'](this['ui']);
 			}
 		});
 	}
@@ -396,15 +402,29 @@
 	}
 
 	uiItem.prototype['hide'] = function(){
-		if(this['DOM'] && this['DOM']['parentNode']){
-			this['DOM']['style']['display'] = 'none';
+		var
+			obj = this
+		;
+		if(obj['DOM']){
+			obj['DOM']['style']['display'] = 'none';
+			if(obj['zIndex']){
+				obj['DOM']['style']['zIndex'] = -1;
+			}
 		}
+		obj['opts']['shown'] = false;
 	}
 
 	uiItem.prototype['show'] = function(){
-		if(this['DOM'] && this['DOM']['parentNode']){
-			this['DOM']['style']['display'] = 'block';
+		var
+			obj = this
+		;
+		if(obj['DOM'] && obj['DOM']['parentNode']){
+			obj['DOM']['style']['display'] = 'block';
+			if(obj['zIndex']){
+				obj['DOM']['style']['zIndex'] = obj['zIndex']();
+			}
 		}
+		obj['opts']['shown'] = true;
 	}
 
 	uiItem.prototype['content'] = function(content){
@@ -421,32 +441,39 @@
 		return opts['content'];
 	}
 
-	uiItem.prototype['content2DOM'] = function(){
+	uiItem.prototype['content2DOM'] = function(wipe){
 		var
-			obj = this,
-			content = obj['content'](),
-			content = content == undefined ? '' : content,
-			DOM     = createElement('div')
+			wipe = !!wipe,
+			obj = this
 		;
 
-		if(typeof content == 'string'){
+		if(wipe || !this['DOM']){
 			var
-				paragraphs,
-				paragraph
+				content = obj['content'](),
+				content = content == undefined ? '' : content,
+				DOM     = createElement('div')
 			;
-			paragraphs = /\n/.test(content) ? content.split("\n") : [content];
-			for(var i=0;i<paragraphs.length;++i){
-				paragraph = createElement('p');
-				paragraph.appendChild(createText(paragraphs[i]));
-				DOM.appendChild(paragraph);
+
+			if(typeof content == 'string'){
+				var
+					paragraphs,
+					paragraph
+				;
+				paragraphs = /\n/.test(content) ? content.split("\n") : [content];
+				for(var i=0;i<paragraphs.length;++i){
+					paragraph = createElement('p');
+					paragraph.appendChild(createText(paragraphs[i]));
+					DOM.appendChild(paragraph);
+				}
+			}else if(content['appendChild'] != undefined || content instanceof Image){
+				DOM.appendChild(content);
 			}
-		}else if(content['appendChild'] != undefined || content instanceof Image){
-			DOM.appendChild(content);
+
+			addClass(DOM, 'mapapi-ui-item-contents');
+
+			this['DOM'] = DOM;
 		}
-
-		addClass(DOM, 'mapapi-ui-item-contents');
-
-		return DOM;
+		return this['DOM'];
 	}
 
 	uiItem.prototype['csspos'] = function(){
@@ -466,9 +493,9 @@
 		this['ui'] = ui;
 		var
 			obj     = this,
-			DOM     = obj['DOM'],
+			DOM     = obj['content2DOM'](),
 			DOMp    = DOM ? (DOM['parentNode'] == undefined ? undefined : DOM['parentNode']) : undefined,
-			dest    = ui['contentNode']
+			dest    = ui['rendererNode']
 		;
 		if(DOM != undefined){
 			if(!!obj['opts']['autoFocus']){
@@ -482,7 +509,7 @@
 					if(!!(DOM ? (DOM['parentNode'] == undefined ? undefined : DOM['parentNode']) : undefined)){
 						var
 							style     = DOM['style'],
-							wasHidden = (style['display'] == 'none'),
+							wasHidden = (style['display'] == '' || style['display'] == 'none'),
 							zIndex    = style['zIndex']
 						;
 						if(wasHidden){
@@ -496,6 +523,7 @@
 							height      = DOM['clientHeight'],
 							width       = DOM['clientWidth'],
 							top         = csspos['y'],
+							top         = (obj instanceof infoWindow) ? (top - height) : top,
 							left        = csspos['x'],
 							contentNode = ui['renderer']['contentNode'],
 							vertical    = height > 0 && top >= 0  && (top + height) <= contentNode['clientHeight'],
@@ -505,7 +533,7 @@
 							style['top']  = top + 'px';
 							style['left'] = left + 'px';
 							if(obj['opts']['disableAutoShow'] != true){
-								obj['show']()
+								obj['show']();
 							}else{
 								obj['hide']();
 							}
@@ -538,6 +566,7 @@
 			ui     = obj['ui'],
 			events = obj['rendererEvents']
 		;
+		obj['hide']();
 		if(DOM != undefined && DOMp != undefined){
 			DOMp['removeChild'](DOM);
 		}
@@ -552,8 +581,10 @@
 		obj['opts']['open'] = false;
 	}
 
+	mapapi['uiitem'] = uiItem;
+
 	function infoWindow(options){
-		uiItem['call'](this);
+		uiItem['call'](this, options);
 		var
 			obj       = this,
 			opts      = {},
@@ -582,12 +613,6 @@
 	};
 	extend(infoWindow, uiItem);
 
-	infoWindow.prototype['csspos'] = function(){
-		var pos = uiItem.prototype['csspos']['call'](this);
-		pos['y'] -= (this['DOM'] != undefined && this['DOM']['clientHeight'] != undefined) ? this['DOM']['clientHeight'] : 0;
-		return pos;
-	}
-
 	infoWindow.prototype['maxWidth'] = function(maxWidth){
 		var
 			opts = this['opts']
@@ -615,39 +640,37 @@
 		return opts['zIndex'];
 	}
 
-	infoWindow.prototype['content2DOM'] = function(){
+	infoWindow.prototype['content2DOM'] = function(wipe){
 		var
-			obj     = this,
-			content = uiItem.prototype['content2DOM']['call'](obj),
-			DOM     = createElement('aside'),
-			div     = createElement('div'),
-			close   = createElement('p')
+			wipe    = !!wipe,
+			obj     = this
 		;
-		addClass(close, 'mapapi-ui-infowindow-close');
-		addClass(div,   'mapapi-ui-wrapper');
-/*
-		obj['addListener']('opened', function(){
-			setTimeout(function(){
-				addClass(div, 'done');
-			},100);
-		});
-		obj['addListener']('closed', function(){
-			delClass(div, 'done');
-		});
-*/
+		if(wipe || !obj['DOM']){
+			var
+				content = uiItem.prototype['content2DOM']['call'](obj, true),
+				DOM     = createElement('aside'),
+				div     = createElement('div'),
+				close   = createElement('p')
+			;
+			addClass(DOM, obj['DOMclasses'].join(' '));
+			addClass(close, 'mapapi-ui-infowindow-close');
+			addClass(div,   'mapapi-ui-wrapper');
 
-		close['appendChild'](createText('×'));
-		close['setAttribute']('title', 'Close');
-		div.appendChild(content);
-		content.appendChild(close);
-		if(obj['maxWidth']() != undefined){
-			DOM['style']['maxWidth'] = obj['maxWidth']();
+			close['appendChild'](createText('×'));
+			close['setAttribute']('title', 'Close');
+			div.appendChild(content);
+			content.appendChild(close);
+			if(obj['maxWidth']() != undefined){
+				DOM['style']['maxWidth'] = obj['maxWidth']();
+			}
+			close['onclick'] = function(){
+				obj['close']();
+			}
+			DOM['appendChild'](div);
+
+			obj['DOM'] = DOM;
 		}
-		close['onclick'] = function(){
-			obj['close']();
-		}
-		DOM['appendChild'](div);
-		return DOM;
+		return obj['DOM'];
 	}
 
 	infoWindow.prototype['DOMclasses'] = [
@@ -659,47 +682,35 @@
 		return new infoWindow(options);
 	}
 
-	function marker(options){
-		uiItem['call'](this);
-		if(options == undefined){
+	
+	function marker(){
+		uiItem.apply(this, arguments);
+		if(arguments.length == 0){
 			return;
 		}
-		if(Image == undefined){
-			throw 'Your browser does not support the image object';
-		}
 		var
-			obj      = this,
-			opts     = obj['opts'],
-			options  = options || {},
-			image    = options['image'],
-			anchor   = options['anchor'],
-			position = options['position'],
-			infoW    = options['infoWindow'],
-			img      = new Image
+			obj     = this,
+			options = arguments[0] || {},
+			anchor  = options['anchor'],
+			imgSrc  = options['image'],
+			infoW   = options['infoWindow'],
+			img     = document.createElement('img')
 		;
-		if(image == undefined){
-			throw 'No marker image specified';
-		}else if(position == undefined){
-			throw 'No position specified';
-		}else if((position instanceof gridPoint) == false){
-			throw 'Invalid position specified';
-		}
-		obj['position'](position);
+		obj['position'](options['position']);
 		if(anchor != undefined){
 			obj['anchor'](anchor);
 		}
-		obj['position'](position);
 		img['onload'] = function(){
 			if(anchor == undefined){
 				obj['anchor']({'x':img['width'] / 2, 'y' : img['height']});
 			}
-			obj['content'](img);
+			obj['content'](this);
 		}
-		img['onerror'] = function(){
-			throw 'Could not load image';
+		img['onclick'] = function(){
+			obj['fire']('click');
 		}
-		img['src'] = image;
-		obj['img'] = img;
+		img['src'] = imgSrc;
+
 		if(infoW instanceof infoWindow){
 			infoW['position'](obj['position']());
 			obj['addListener']('click', function(){
@@ -713,8 +724,23 @@
 			});
 		}
 	}
+
 	extend(marker, uiItem);
 
+	marker.prototype['DOMclasses'] = [
+		'mapapi-ui-marker'
+	];
+
+	marker.prototype['content2DOM'] = function(wipe){
+		var
+			wipe = !!wipe
+		;
+		if(wipe || !this['DOM']){
+			this['DOM'] = this['content']();
+		}
+		return this['DOM'];
+	}
+	
 	marker.prototype['anchor'] = function(anchor){
 		if(anchor != undefined){
 			if(typeof anchor['x'] != 'number' || typeof anchor['y'] != 'number'){
@@ -739,31 +765,148 @@
 		return pos;
 	}
 
-	marker.prototype['content2DOM'] = function(){
-		var
-			obj     = this,
-			content = obj['content'](),
-			DOM     = createElement('img')
-		;
-		if(!(content instanceof Image) && content['nodeName']['toLowerCase']() != 'img'){
-			throw 'Invalid contents, must be an instance of Image or an img tag';
-		}
-		DOM['setAttribute']('src', content['src']);
-		DOM['onclick'] = function(){
-			obj['fire']('click');
-		}
-		return DOM;
-	}
-
-	marker.prototype['DOMclasses'] = [
-		'mapapi-ui-marker'
-	];
-
 	mapapi['marker'] = marker;
 
-	function markerManager(){
-		EventTarget['call'](this);
-		this['markers'] = [];
+	function markerManager(options){
+		if(options == undefined){
+			throw new Error('Options not specified');
+		}else{
+			['ui', 'defaultMarkerImage', 'defaultMarkerAnchor'].forEach(function(e){
+				if(!options.hasOwnProperty(e)){
+					throw new Error(e + ' not specified in options');
+				}
+			});
+		}
+		var
+			obj                 = this,
+			ui                  = options['ui'],
+			defaultMarkerImage  = options['defaultMarkerImage'],
+			defaultMarkerAnchor = options['defaultMarkerAnchor']
+		;
+		EventTarget['call'](obj);
+		obj['markers'] = [];
+		obj.clustered = [];
+		obj.clusterClosed = [];
+		obj.clusterList = new uiItem['list']();
+		obj['ui'] = ui;
+		ui['renderer']['addListener']('bounds_changed', function(e){
+			obj.clusterList['close']();
+			obj.clusterList = new uiItem['list']();
+			obj.clusterClosed.forEach(function(e){
+				e['open'](obj['ui']);
+			});
+			obj.clusterClosed = [];
+			var
+				renderer   = this,
+				cellWidth  = renderer['contentNode']['clientWidth']  /  Math.floor(renderer['contentNode']['clientWidth']  / 96),
+				cellHeight = renderer['contentNode']['clientHeight'] /  Math.floor(renderer['contentNode']['clientHeight'] / 96),
+				horizontal = [],
+				vertical = [],
+				bounds = [],
+				boundMarkers = []
+			;
+			for(var i=0;i<=renderer['contentNode']['clientWidth'];i+=cellWidth){
+				horizontal.push(renderer['px2point'](i, 0)['x']);
+			}
+			for(var i=0;i<=renderer['contentNode']['clientHeight'];i+=cellHeight){
+				vertical.push(renderer['px2point'](0, i)['y']);
+			}
+			for(var i=0;i<(horizontal.length - 1);++i){
+				for(var j=0;j<(vertical.length - 1);++j){
+					bounds.push(new mapapi['bounds']({
+						'x' : horizontal[i],
+						'y' : vertical[j + 1]
+					},{
+						'x' : horizontal[i + 1],
+						'y' : vertical[j]
+					}));
+					boundMarkers.push([]);
+				}
+			}
+			vertical = horizontal = undefined;
+			obj['markers'].forEach(function(e){
+				if(e['opts']['shown']){
+					for(var i=0;i<bounds.length;++i){
+						if(bounds[i]['isWithin'](e['position']())){
+							boundMarkers[i].push(e);
+							obj.clusterClosed.push(e);
+							e['close']();
+							break;
+						}
+					}
+				}
+			});
+			obj.clustered.forEach(function(e){
+				if(e){
+					e['close']();
+				}
+			});
+			obj.clustered = [];
+			boundMarkers.forEach(function(e, i){
+				if(e.length == 1){
+					e[0]['open'](obj['ui']);
+					obj.clustered.push(false);
+				}else if(e.length > 1){
+					var
+						cellBounds = bounds[i],
+						x=0,
+						y=0,
+						clusteredStandin
+					;
+					e.forEach(function(f){
+						var
+							pos = f['position']()
+						;
+						x += pos['x'];
+						y += pos['y'];
+					});
+					clusteredStandin = new numberedMarker({
+							'image'    : defaultMarkerImage,
+							'anchor'     : defaultMarkerAnchor,
+							'position' : new gridPoint(
+								x / e.length,
+								y / e.length
+							),
+							'number' : e.length
+						})
+					;
+					clusteredStandin['addListener']('click', function(){
+						var
+							objM    = this,
+							content = []
+						;
+						for(var i=0;i<e.length;++i){
+							content.push('Marker ' + (i + 1));
+						}
+						objM['hide']();
+						obj.clusterList['content'](content);
+						obj.clusterList['position'](objM['position']());
+						obj.clusterList['open'](obj['ui']);
+						obj.clusterList['show']();
+						obj.clusterList['fire']('click');
+						obj.clusterList['addListener']('click', function(f){
+							if(f['child']){
+								var
+									pos = Array.prototype['slice']['call'](obj.clusterList['DOM']['firstChild']['childNodes'])['indexOf'](f['child'])
+								;
+								if(pos >= 0){
+									e[pos]['fire']('click');
+								}
+							}else if(hasClass(this['DOM'], 'toggled')){
+								obj.clusterList['hide']();
+								objM['show']();
+							}
+						});
+					});
+					obj.clustered.push(clusteredStandin);
+				}
+			});
+			obj.clustered.forEach(function(e){
+				if(e){
+					e['open'](obj['ui']);
+				}
+			});
+		});
 	}
 	extend(markerManager, EventTarget);
 
@@ -791,13 +934,18 @@
 		}
 	}
 
-	markerManager.prototype['open'] = function(on){
-		if(!(on instanceof ui)){
-			throw 'value must be an instance of mapapi.ui';
-		}
-		for(var i=0;i<this['markers']['length'];++i){
-			this['markers'][i]['open'](on);
-		}
+	markerManager.prototype['open'] = function(){
+		var
+			ui = this['ui'],
+			firstLoadOpen = function(){
+				this['open'](ui);
+				this['removeListener']('content_changed', firstLoadOpen);
+			}
+		;
+		this['markers']['forEach'](function(e){
+			e['open'](ui);
+			e['addListener']('content_changed', firstLoadOpen);
+		});
 		this['fire']('opened');
 	}
 
@@ -826,6 +974,11 @@
 	}
 	extend(numberedMarker, marker);
 
+	numberedMarker.prototype['DOMclasses'] = [
+		'mapapi-ui-marker',
+		'mapapi-ui-marker-numbered'
+	];
+
 	numberedMarker.prototype['number'] = function(number){
 		if(typeof number == 'number'){
 			this['opts']['number'] = number;
@@ -834,40 +987,51 @@
 		return this['opts']['number'];
 	}
 
-	numberedMarker.prototype['content2DOM'] = function(){
+	numberedMarker.prototype['content2DOM'] = function(wipe){
 		var
-			obj     = this,
-			content = marker.prototype['content2DOM']['call'](obj),
-			img     = obj['img'],
-			DOM     = createElement('div'),
-			number  = createElement('p'),
-			value   = parseInt(obj['opts']['number'])
+			wipe            = !!wipe,
+			obj             = this
 		;
-		number['appendChild'](createText(value));
-		number['setAttribute']('title', value);
-		number['onclick'] = function(){
-			obj['fire']('click');
+		if(wipe || !obj['DOM']){
+			var
+				content = obj['content'](),
+				DOM     = createElement('div'),
+				number  = createElement('p'),
+				value   = parseInt(obj['opts']['number'])
+			;
+			number['appendChild'](createText(value));
+			number['setAttribute']('title', value);
+			number['onclick'] = function(){
+				obj['fire']('click');
+			}
+
+			while(DOM['hasChildNodes']()){
+				DOM['removeChild'](DOM['firstChild']);
+			}
+			
+			if(content){
+				content['onclick'] = function(){}
+				delete content['onclick'];
+
+				content['className'] = '';
+				addClass(content, 'mapapi-ui-marker-img');
+
+				DOM['style']['width']  = content['width'] + 'px';
+				DOM['style']['height'] = content['height'] + 'px';
+
+				DOM['appendChild'](content);
+			}
+
+			addClass(number, 'mapapi-ui-marker-number');
+
+			addClass(DOM, obj['DOMclasses'].join(' '));
+			DOM['appendChild'](number);
+
+			obj['DOM'] = DOM;
 		}
 
-		delClass(content, 'mapapi-ui-marker');
-		addClass(content, 'mapapi-ui-marker-img');
-
-		if(!!img){
-			DOM['style']['width']  = img['width'] + 'px';
-			DOM['style']['height'] = img['height'] + 'px';
-		}
-
-		addClass(number, 'mapapi-ui-marker-number');
-
-		DOM['appendChild'](content);
-		DOM['appendChild'](number);
-
-		return DOM;
+		return obj['DOM'];
 	}
-	numberedMarker.prototype['DOMclasses'] = [
-		'mapapi-ui-marker',
-		'mapapi-ui-marker-numbered'
-	];
 
 	mapapi['numberedMarker'] = numberedMarker;
 
