@@ -257,21 +257,25 @@
 			for(var i=0;i<sections['length'];++i){
 				if(sections[i] instanceof section){
 					var
+						subsection = sections[i],
 						text       = subsection['text'](),
 						li         = createElement('li'),
 						h1         = createElement('h1', text),
-						ul         = createElement('ul'),
-						subsection = sections[i]
+						ul         = createElement('ul')
 					;
 					h1['onclick'] = function(){
 						toggleClass(this['parentNode'], 'toggled');
 						subsection['fire']('click');
 					};
 					li['appendChild'](h1);
-					li['appendChild'](ul);
+					if(!(sections[i] instanceof stubSection)){
+						li['appendChild'](ul);
+						subsection['DOM'] = ul;
+					}else if(subsection['content2DOM']){
+						li['appendChild'](subsection['content2DOM'](true));
+					}
 					addClass(li, text['toLowerCase']()['replace'](/[^A-z\d]+/g,''));
 					addClass(li, 'childless');
-					subsection['DOM'] = ul;
 					this['DOM']['appendChild'](li);
 					delClass(this['DOM']['parentNode'], 'childless');
 					subsection['addListener']('sectionsadded', sectionsAddedListener);
@@ -283,6 +287,7 @@
 			}
 		}
 	}
+
 	function sectionsRemovedListener(e){
 		var
 			sections = e['sections'],
@@ -921,8 +926,29 @@
 						e['open'](obj['ui']);
 					}
 				});
+			},
+			searchSectionCreator = function(e){
+				if(e['ui'] == ui && e['name'] == 'Menu'){
+					var
+						searchSection = e['sidebar']['findOrCreateSection']('Search')
+					;
+					obj.markerSearchSection = searchSection['findOrCreateSection']('Markers', uiItem['searchSection']);
+					obj.markerSearchSection['addListener']('click', function(e){
+						if(e['child']){
+							var
+								pos = Array.prototype['slice']['call'](obj.markerSearchSection['DOM']['querySelectorAll']('ul > li'))['indexOf'](e['child'])
+							;
+							if(pos >= 0){
+								obj['markers'][pos]['fire']('click');
+							}
+						}
+					});
+
+					mapapi['events']['removeListener']('sidebaradded', searchSectionCreator);
+				}
 			}
 		;
+		mapapi['events']['addListener']('sidebaradded', searchSectionCreator);
 		EventTarget['call'](obj);
 		obj['markers'] = [];
 		obj.clustered = [];
@@ -948,27 +974,52 @@
 	}
 	extend(markerManager, EventTarget);
 
-	markerManager.prototype['add'] = function(one){
-		if(one == undefined){
+	markerManager.prototype['add'] = function(){
+		if(arguments.length < 1){
 			throw 'No marker specified';
-		}else if(one instanceof marker){
-			if(this['markers']['indexOf'](one) == -1){
-				this['markers']['push'](one);
+		}
+		var
+			names = []
+		;
+		for(var i=0;i<arguments.length;++i){
+			var
+				one = arguments[i]
+			;
+			if(one instanceof marker){
+				if(this['markers']['indexOf'](one) == -1){
+					this['markers']['push'](one);
+					if(this.markerSearchSection){
+						names.push(one['name']);
+					}
+				}
+			}else{
+				throw 'value is not a marker';
 			}
-		}else{
-			throw 'value is not a marker';
+		}
+		if(names.length > 0){
+			this.markerSearchSection['searchEngine']['add']['apply'](this.markerSearchSection['searchEngine'], names);
 		}
 	}
 
-	markerManager.prototype['remove'] = function(one){
-		if(one != undefined){
+	markerManager.prototype['remove'] = function(){
+		var
+			names = []
+		;
+		for(var i=0;i<arguments.length;++i){
 			var
+				one = arguments[i],
 				pos = this['markers']['indexOf'](one)
 			;
 			if(pos >= 0){
 				this['markers'][i]['close']();
 				this['markers']['splice'](pos, 1);
+				if(this.markerSearchSection){
+					names.push(one['name']);
+				}
 			}
+		}
+		if(names.length > 0){
+			this.markerSearchSection['searchEngine']['remove']['apply'](this.markerSearchSection['searchEngine'], names);
 		}
 	}
 
@@ -995,12 +1046,11 @@
 	}
 
 	mapapi['markerManager'] = markerManager;
-	ui.prototype['addMarker'] = function(one){
-		if(one instanceof marker){
-			this['markerManager']['add'](one);
-		}else{
-			throw 'value must be instance of mapapi.marker';
-		}
+	ui.prototype['addMarker'] = function(){
+		this['markerManager']['add']['apply'](this['markerManager'], arguments);
+	}
+	ui.prototype['removeMarker'] = function(){
+		this['markerManager']['remove']['apply'](this['markerManager'], arguments);
 	}
 
 	function numberedMarker(options){
@@ -1122,6 +1172,32 @@
 		}
 	}
 
+	sidebar.prototype['findSection'] = function(text){
+		for(var i=0;i<this['sections']['length'];++i){
+			if(this['sections'][i]['text']() == text){
+				return this['sections'][i];
+			}
+		}
+		return false;
+	}
+
+	sidebar.prototype['findOrCreateSection'] = function(text){
+		var
+			type  = arguments['length'] > 1 ? arguments[1] : section,
+			found = this['findSection'](text)
+		;
+		if(type == undefined){
+			throw new Error('Type not found');
+		}else if(!found){
+			if(type != section && !(type.prototype instanceof section) && !(type.prototype instanceof stubSection)){
+				throw new Error('Type should be instance of mapap.ui.section or child class thereof.');
+			}
+			found = new type(text);
+			this['addSection'](found);
+		}
+		return found;
+	}
+
 	ui['sidebar'] = sidebar;
 
 	function section(options){
@@ -1167,4 +1243,35 @@
 	}
 
 	ui['section'] = section;
+
+
+	function stubSection(options){
+		section['call'](this, options);
+		if(!options){
+			return;
+		}
+	}
+
+	extend(stubSection, section);
+
+	stubSection.prototype['addSection']  = function(){
+		throw new Error('Cannot add sections to a stub section');
+	}
+
+	stubSection.prototype['findSection'] = function(){
+		return false;
+	}
+
+	stubSection.prototype['findOrCreateSection'] = function(){
+		throw new Error('Cannot add sections to a stub section');
+	}
+
+	stubSection.prototype['addListener'] = function(){
+		if(arguments.length > 0 && arguments[0] == 'sectionsadded'){
+			return;
+		}
+		section.prototype['addListener']['apply'](this, arguments);
+	}
+
+	section['stub'] = stubSection;
 })(window);
