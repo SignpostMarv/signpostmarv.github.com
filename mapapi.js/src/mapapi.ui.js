@@ -1,7 +1,7 @@
 /**
 * License and Terms of Use
 *
-* Copyright (c) 2011 SignpostMarv
+* Copyright (c) 2013 SignpostMarv
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -29,9 +29,8 @@
 		EventTarget   = window['EventTarget'],
 		Image         = window['Image'],
 		Array         = window['Array'],
-		createElement = function(a){ return document['createElement'](a); },
-		createText    = function(a){ return document['createTextNode'](a); },
 		mapapi        = window['mapapi'],
+		createElement = mapapi['utils']['createElement'],
 		gridPoint     = mapapi['gridPoint'],
 		bounds        = mapapi['bounds'],
 		utils         = mapapi['utils'],
@@ -51,7 +50,26 @@
 
 	var
 		uiID = 0,
-		uiregex = /(mapapi\.ui\.js|mapapi-complete.js)$/
+		uiregex = /(mapapi\.ui\.js|mapapi-complete.js)$/,
+		testStyle  = createElement('a')['style'],
+		transformProps = ['transform', 'webkitTransform'],
+		hasTransform = false,
+		transformProp
+	;
+	for(var i=0;i<transformProps['length'];++i){
+		transformProp = transformProps[i];
+		if(transformProp in testStyle){
+			hasTransform = true;
+			break;
+		}
+	}
+	var
+		setCSSPos = hasTransform ? function(element, top, left){
+			element['style'][transformProp] = 'translateX(' + left + 'px) translateY(' + top + 'px)';
+		} : function(element, top, left){
+			element['style']['top'] = top + 'px';
+			element['style']['left'] = left + 'px';
+		}
 	;
 
 	function ui(options){
@@ -239,13 +257,12 @@
 			for(var i=0;i<sections['length'];++i){
 				if(sections[i] instanceof section){
 					var
+						text       = subsection['text'](),
 						li         = createElement('li'),
-						h1         = createElement('h1'),
+						h1         = createElement('h1', text),
 						ul         = createElement('ul'),
-						subsection = sections[i],
-						text       = subsection['text']()
+						subsection = sections[i]
 					;
-					h1['appendChild'](createText(text));
 					h1['onclick'] = function(){
 						toggleClass(this['parentNode'], 'toggled');
 						subsection['fire']('click');
@@ -455,18 +472,11 @@
 			;
 
 			if(typeof content == 'string'){
-				var
-					paragraphs,
-					paragraph
-				;
-				paragraphs = /\n/.test(content) ? content.split("\n") : [content];
-				for(var i=0;i<paragraphs.length;++i){
-					paragraph = createElement('p');
-					paragraph.appendChild(createText(paragraphs[i]));
-					DOM.appendChild(paragraph);
-				}
+				content.split("\n")['forEach'](function(e){
+					DOM['appendChild'](createElement('p', e));
+				});
 			}else if(content['appendChild'] != undefined || content instanceof Image){
-				DOM.appendChild(content);
+				DOM['appendChild'](content);
 			}
 
 			addClass(DOM, 'mapapi-ui-item-contents');
@@ -530,8 +540,7 @@
 							horizontal  = width > 0  && left >= 0 && (left + DOM['clientWidth']) <= contentNode['clientWidth']
 						;
 						if((vertical && horizontal) || (height == 0 && obj['ui']['renderer']['bounds']()['isWithin'](obj['position']()))){
-							style['top']  = top + 'px';
-							style['left'] = left + 'px';
+							setCSSPos(DOM, top, left);
 							if(obj['opts']['disableAutoShow'] != true){
 								obj['show']();
 							}else{
@@ -650,13 +659,12 @@
 				content = uiItem.prototype['content2DOM']['call'](obj, true),
 				DOM     = createElement('aside'),
 				div     = createElement('div'),
-				close   = createElement('p')
+				close   = createElement('p', '×')
 			;
 			addClass(DOM, obj['DOMclasses'].join(' '));
 			addClass(close, 'mapapi-ui-infowindow-close');
 			addClass(div,   'mapapi-ui-wrapper');
 
-			close['appendChild'](createText('×'));
 			close['setAttribute']('title', 'Close');
 			div.appendChild(content);
 			content.appendChild(close);
@@ -682,7 +690,10 @@
 		return new infoWindow(options);
 	}
 
-	
+	var
+		markerID = 0
+	;
+
 	function marker(){
 		uiItem.apply(this, arguments);
 		if(arguments.length == 0){
@@ -694,7 +705,7 @@
 			anchor  = options['anchor'],
 			imgSrc  = options['image'],
 			infoW   = options['infoWindow'],
-			img     = document.createElement('img')
+			img     = createElement('img')
 		;
 		obj['position'](options['position']);
 		if(anchor != undefined){
@@ -710,6 +721,9 @@
 			obj['fire']('click');
 		}
 		img['src'] = imgSrc;
+
+		obj['id']   = ++markerID;
+		obj['name'] = options['name'] || ('Marker ' + obj['id']);
 
 		if(infoW instanceof infoWindow){
 			infoW['position'](obj['position']());
@@ -740,7 +754,7 @@
 		}
 		return this['DOM'];
 	}
-	
+
 	marker.prototype['anchor'] = function(anchor){
 		if(anchor != undefined){
 			if(typeof anchor['x'] != 'number' || typeof anchor['y'] != 'number'){
@@ -875,9 +889,9 @@
 								objM['show']();
 							}
 							objM = this;
-							for(var i=0;i<e.length;++i){
-								content.push('Marker ' + (i + 1));
-							}
+							e.forEach(function(f){
+								content.push(f['name']);
+							});
 							objM['hide']();
 							obj.clusterList['close']();
 							obj.clusterList['content'](content);
@@ -1019,11 +1033,10 @@
 		if(wipe || !obj['DOM']){
 			var
 				content = obj['content'](),
+				value   = parseInt(obj['opts']['number']),
 				DOM     = createElement('div'),
-				number  = createElement('p'),
-				value   = parseInt(obj['opts']['number'])
+				number  = createElement('p', value)
 			;
-			number['appendChild'](createText(value));
 			number['setAttribute']('title', value);
 			number['onclick'] = function(){
 				obj['fire']('click');
@@ -1032,7 +1045,7 @@
 			while(DOM['hasChildNodes']()){
 				DOM['removeChild'](DOM['firstChild']);
 			}
-			
+
 			if(content){
 				content['onclick'] = function(){}
 				delete content['onclick'];
