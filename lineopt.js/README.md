@@ -1,0 +1,1 @@
+Library for optimising arrays of line segments.
