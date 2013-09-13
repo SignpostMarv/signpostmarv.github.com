@@ -1,0 +1,157 @@
+<html>
+<head>
+<script src="../src/2d.js"></script>
+<script>
+window.onload = function(){
+	function randomArray(length){
+		var
+			output = Float32Array ? new Float32Array(length) : new Array(length)
+		;
+		for(var i=0;i<length;++i){
+			output[i] = Math.random()
+		}
+
+		return output;
+	}
+
+	function time(){
+		return (new Date).getTime();
+	}
+
+	function avgs(){
+		while(avgTr.hasChildNodes()){
+			avgTr.removeChild(avgTr.firstChild);
+		}
+		var
+			tr         = document.createElement('tr')
+			th         = document.createElement('th'),
+			sanitiseTd = tbody.querySelectorAll('th + td + td'),
+			optimiseTd = tbody.querySelectorAll('th + td + td + td')
+			sanitise   = 0,
+			optimise   = 0
+		;
+		for(var i=0;i<sanitiseTd.length;++i){
+			sanitise += parseInt(sanitiseTd[i].textContent);
+			optimise += parseInt(optimiseTd[i].textContent);
+		}
+		sanitise /= sanitiseTd.length;
+		optimise /= sanitiseTd.length;
+		th.setAttribute('scope', 'row');
+		th.setAttribute('colspan', 2);
+		th.appendChild(document.createTextNode(sanitiseTd.length));
+		sanitiseTd = document.createElement('td');
+		optimiseTd = document.createElement('td');
+		sanitiseTd.appendChild(document.createTextNode(sanitise));
+		optimiseTd.appendChild(document.createTextNode(optimise));
+		avgTr.appendChild(th);
+		avgTr.appendChild(sanitiseTd);
+		avgTr.appendChild(optimiseTd);
+	}
+
+	function test(length, iterations){
+		var
+			current    = 0,
+			iterations = Math.max(1, parseInt(iterations || 100))
+		;
+		abort = false;
+		while(tbody.hasChildNodes()){
+			tbody.removeChild(tbody.firstChild);
+		}
+		function doTest(){
+			++current;
+			var
+				data  = randomArray(Math.max(3, parseInt(length || 100)) * 2),
+				tr    = document.createElement('tr'),
+				th    = document.createElement('th'),
+				tdTxt = [data.length]
+			;
+			th.appendChild(document.createTextNode(++counter));
+			th.setAttribute('scope', 'row');
+			tr.appendChild(th);
+			tdTxt.push(time());
+			lineOpt.sanitise(data);
+			tdTxt[1] = time() - tdTxt[1];
+			tdTxt.push(time());
+			lineOpt.optimise(data);
+			tdTxt[2] = time() - tdTxt[2];
+			tdTxt.forEach(function(e){
+				var
+					td = document.createElement('td')
+				;
+				td.appendChild(document.createTextNode(e));
+				tr.appendChild(td);
+			});
+			tbody.appendChild(tr);
+			progress.value = current / iterations;
+			if(current < iterations && !abort){
+				setTimeout(doTest, 1);
+			}else{
+				avgs();
+			}
+		}
+		doTest();
+	}
+
+	window.test = test;
+
+	var
+		counter = 0,
+		abort = false,
+		form  = document.querySelector('form'),
+		progress = form.querySelector('progress'),
+		table = document.createElement('table'),
+		thead = document.createElement('thead'),
+		tbody = document.createElement('tbody'),
+		avgTr = document.createElement('tr'),
+		tr    = document.createElement('tr'),
+		thTxt = ['Test', 'Length', 'Sanitise', 'Optimise']
+	;
+	thTxt.forEach(function(e){
+		var
+			th = document.createElement('th')
+		;
+		th.appendChild(document.createTextNode(e));
+		tr.appendChild(th);
+	});
+	thead.appendChild(tr);
+	thead.appendChild(avgTr);
+	table.appendChild(thead);
+	table.appendChild(tbody);
+	document.body.appendChild(table);
+	form.onsubmit = function(e){
+		if(e){
+			e.stopPropagation();
+			e.preventDefault();
+		}
+		test(this.querySelector('#length').value, this.querySelector('#iterations').value);
+		return false;
+	}
+	form.onreset = function(e){
+		e.stopPropagation();
+		e.preventDefault();
+		abort = true;
+		return false;
+	}
+	form.onsubmit.call(form);
+}
+</script>
+<style>
+tbody{
+	display: none ;
+}
+</style>
+</head>
+<body>
+<form>
+	<fieldset>
+		<ul>
+			<li><label for=length>Length: </label><input id=length type=number min=3 step=1 value=1000></li>
+			<li><label for=iterations>Iterations: </label><input id=iterations type=number min=1 step=1 value=100></li>
+		</ul>
+	</fieldset>
+	<button type=submit>Run Test</button>
+	<button type=reset>Abort</button>
+	<progress>
+</form>
+</body>
+</html>
