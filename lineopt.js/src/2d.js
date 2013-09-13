@@ -42,6 +42,7 @@
     ;
 
 
+
     function isSupportedArray(input){
         for(var i=0;i<supportedArrays.length;++i){
             if(supportedArrays[i] && (
@@ -55,12 +56,15 @@
     }
 
 
+
+
     function isArray(input){
         return (input && (
             input instanceof Array ||
             input.prototype instanceof Array
         ));
     }
+
 
 
     function isNumericOnlyArray(input){
@@ -74,6 +78,7 @@
         }
         return false;
     }
+
 
 
     function hasUniques(input){
@@ -275,127 +280,155 @@
         var
             copy = Float32Array ?
                 new Float32Array(sanitised.length) :
-                sanitised.slice()
+                new Array(sanitised.length)
         ;
-        if(Float32Array){
-            for(var i=0;i<copy.length;i+=2){
-                var
-                    x = sanitised[i + 0],
-                    y = sanitised[i + 1]
-                ;
-                if(x == 0 && y == 0){
-                    copy[i + 0] = copy[i + 0] = 0;
-                    continue;
-                }
-                var
-                    magnitude = sqrt((x * x) + (y * y))
-                ;
-                copy[i + 0] = x / magnitude;
-                copy[i + 1] = y / magnitude;
+        for(var i=0;i<copy.length;i+=2){
+            var
+                x = sanitised[i + 0],
+                y = sanitised[i + 1]
+            ;
+            if(x == 0 && y == 0){
+                copy[i + 0] = copy[i + 1] = 0;
+                continue;
             }
-        }else{
-            for(var i=0;i<copy.length;i+=2){
-                var
-                    x = copy[i + 0],
-                    y = copy[i + 1]
-                ;
-                if(x == 0 && y == 0){
-                    copy[i + 0] = copy[i + 0] = 0;
-                    continue;
-                }
-                var
-                    magnitude = sqrt((x * x) + (y * y))
-                ;
-                copy[i + 0] /= magnitude;
-                copy[i + 1] /= magnitude;
-            }
+            var
+                magnitude = sqrt((x * x) + (y * y))
+            ;
+            copy[i + 0] = x / magnitude;
+            copy[i + 1] = y / magnitude;
         }
 
         return copy;
     }
 
     function ignoreConsecutiveDuplicates(sanitised){
-        var
-            output = [sanitised[0], sanitised[1]],
-            prevX  = sanitised[0],
-            prevY  = sanitised[1]
-        ;
-        for(var i=2;i<(sanitised.length - 2);i+=2){
-            if(
-                prevX != sanitised[i + 0] ||
-                prevY != sanitised[i + 1]
-            ){
-                prevX = sanitised[i + 0];
-                prevY = sanitised[i + 1];
-                output.push(prevX);
-                output.push(prevY);
+        return (function(stdlib, foreign, heap){
+            'use asm';
+            var
+                output  = stdlib['Float32Array'] ? new stdlib['Float32Array'](heap.length) : new stdlib['Array'],
+                counter = 2|0,
+                prevX   = +heap[0],
+                prevY   = +heap[1]
+            ;
+            output[0|0] = prevX;
+            output[1|0] = prevY;
+            for(var i=2|0;i<(heap.length - 2)|0;i+=2|0){
+                if(
+                    prevX != +heap[i] ||
+                    prevY != +heap[i + 1|0]
+                ){
+                    prevX = +heap[i];
+                    prevY = +heap[i + 1|0];
+                    output[counter++] = prevX;
+                    output[counter++] = prevY;
+                }
             }
-        }
-        output.push(sanitised[sanitised.length - 2]);
-        output.push(sanitised[sanitised.length - 1]);
-
-        return Float32Array ? new Float32Array(output) : output;
+            output[counter++] = heap[heap.length - 2];
+            output[counter++] = heap[heap.length - 1];
+            if(stdlib['Float32Array']){
+                output = new stdlib['Float32Array'](output['buffer']['slice'](0, counter * 4));
+            }
+            return {
+                'output' : output
+            }
+        })({
+            'Float32Array': Float32Array,
+            'Array'       : Array
+        }, {}, sanitised)['output'];
     }
 
     function reduceByVector(sanitised){
-        var
-            output     = [sanitised[0], sanitised[1]],
-            distances  = Float32Array ?
-                new Float32Array(sanitised.length - 2) :
-                new Array(sanitised.length - 2)
-        ;
-        for(var i=0;i<(sanitised.length - 2);i+=2){
-            distances[i + 0] = sanitised[i + 2] - sanitised[i + 0];
-            distances[i + 1] = sanitised[i + 3] - sanitised[i + 1];
-        }
-        var
-            normalised = normaliseVectors(distances),
-            nPrevX     = normalised[0],
-            nPrevY     = normalised[1],
-            prevX      = sanitised[0],
-            prevY      = sanitised[1]
-        ;
-        for(var i=2;i<(sanitised.length - 2);i+=2){
-            if(
-                nPrevX != normalised[i + 0] ||
-                nPrevY != normalised[i + 1]
-            ){
-                nPrevX = normalised[i + 0];
-                nPrevY = normalised[i + 1];
-                prevX  = sanitised[i + 0];
-                prevY  = sanitised[i + 1];
-                output.push(prevX);
-                output.push(prevY);
+        return (function(stdlib, foreign, heap){
+            'use asm';
+            var
+                output  = new stdlib['optArray'](heap.length|0),
+                counter = 2|0,
+                distances  = new stdlib['optArray']((heap.length|0) - (2|0))
+            ;
+            for(var i=0|0;i<(heap.length|0 - 2|0);i+=2|0){
+                distances[i + 0|0] = +heap[i + 2|0] - +heap[i + 0|0];
+                distances[i + 1|0] = +heap[i + 3|0] - +heap[i + 1|0];
             }
-        }
-        output.push(sanitised[sanitised.length - 2]);
-        output.push(sanitised[sanitised.length - 1]);
+            var
+                normalised = foreign['normaliseVectors'](distances),
+                nPrevX     = +normalised[0|0],
+                nPrevY     = +normalised[1|0],
+                prevX      = +heap[0|0],
+                prevY      = +heap[1|0]
+            ;
+            for(var i=2|0;i<(heap.length|0 - 2|0)|0;i+=2|0){
+                if(
+                    +nPrevX != +normalised[i] ||
+                    +nPrevY != +normalised[i + 1|0]
+                ){
+                    nPrevX = +normalised[i + 0];
+                    nPrevY = +normalised[i + 1];
+                    output[counter++] = prevX  = +heap[i];
+                    output[counter++] = prevY  = +heap[i + 1|0];
+                }
+            }
+            output[counter++] = heap[(heap.length|0) - (2|0)];
+            output[counter++] = heap[(heap.length|0) - (1|0)];
+            if(stdlib['Float32Array']){
+                output = new stdlib['Float32Array'](output['buffer']['slice'](0, counter * 4|0));
+            }else{
+                output = output['slice'](0, counter);
+            }
 
-        return Float32Array ? new Float32Array(output) : output;
+            return {
+                'output' : output
+            };
+        })({
+            'Float32Array': Float32Array,
+            'Array'       : Array,
+            'optArray'    : Float32Array ? Float32Array : Array
+        }, {'normaliseVectors':normaliseVectors}, sanitised)['output'];
     }
 
     function reduceByDistance(sanitised, minDistance){
-        var
-            minDistance = Math.abs(Math.pow(
-                Math.max(.0001, parseFloat(minDistance || 0)
-            ), 2)),
-            output     = [sanitised[0], sanitised[1]]
-        ;
-        for(var i=2;i<(sanitised.length - 2);i+=2){
+        return (function(stdlib, foreign, heap){
+			'use asm';
             var
-                x = sanitised[i + 2] - sanitised[i + 0],
-                y = sanitised[i + 3] - sanitised[i + 1],
-                currentMag = Math.abs((x * x) + (y * y))
+                minDistance = +stdlib['Math']['abs'](
+                    +stdlib['Math']['max'](
+						+.0001,
+						+foreign['minDistance'] || +0
+					)
+				),
+                output  = new stdlib['optArray'](heap.length|0),
+                counter = 2|0
             ;
-            if(currentMag >= minDistance){
-                output.push(sanitised[i + 0]);
-                output.push(sanitised[i + 1]);
+			minDistance *= minDistance;
+            for(var i=2|0;i<((heap.length|0) - (2|0));i+=2|0){
+                var
+                    x = +heap[i + 2|0] - +heap[i],
+                    y = +heap[i + 3|0] - +heap[i + 1|0],
+                    currentMag = +stdlib['Math'].abs(
+                        +(x * x) +
+                        +(y * y)
+                    )
+                ;
+                if(currentMag >= minDistance){
+                    output[counter++] = +heap[i];
+                    output[counter++] = +heap[i + 1|0];
+                }
             }
-        }
-        output.push(sanitised[sanitised.length - 2]);
-        output.push(sanitised[sanitised.length - 1]);
+            output[counter++] = heap[(heap.length|0) - (2|0)];
+            output[counter++] = heap[(heap.length|0) - (1|0)];
+            if(stdlib['Float32Array']){
+                output = new stdlib['Float32Array'](output['buffer']['slice'](0|0, counter * 4|0));
+            }else{
+                output = output['slice'](0|0, counter);
+            }
 
-        return Float32Array ? new Float32Array(output) : output;
+            return {
+                'output' : output
+            };
+        })({
+            'Math'         : {'abs':Math.abs, 'max':Math.max},
+            'optArray'     : Float32Array ? Float32Array : Array,
+            'Float32Array' : Float32Array
+        }, {'minDistance':minDistance}, sanitised)['output'];
     }
 
     lineOpt['twoD'] = {
