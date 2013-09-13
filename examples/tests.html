@@ -1,0 +1,156 @@
+<html>
+<head>
+<script src="../src/2d.js"></script>
+<script>
+window.onload = function(){
+	while(document.body.hasChildNodes()){
+		document.body.removeChild(document.body.firstChild);
+	}
+	function forceArray(input){
+		if(typeof(input) == 'object'){
+			if(Float32Array){
+				var foo = new Array(input.length);
+				for(var i=0;i<input.length;++i){
+					foo[i] = input[i];
+				}
+				input = foo;
+			}
+		}
+		return input;
+	}
+	function randomArray(length){
+		var
+			output = new Array(length)
+		;
+		for(var i=0;i<length;++i){
+			output[i] = Math.random()
+		}
+
+		return output;
+	}
+	var
+		tests = [
+			[0,1, 2,3, 4,5],
+			[0,1, 2,3],
+			[0,1, 2],
+			[0,1],
+			[{'x':0, 'y':1}, {'x':2, 'y':3}, {'x':4, 'y':5}],
+			[{'x':0, 'y':1}, {'x':2, 'y':3}],
+			[{'x':0, 'y':1}],
+			[{'x':0, 'y':1}, {'x':2}],
+			'foo',
+			123456,
+			[0,0, 0,0, 0,0],
+			[0,0, 0,0.5, 0,1],
+			[0,0, 0,0.000001, 0,0, 0,0.000001, 0,0, 1,1]
+		],
+		table = document.createElement('table'),
+		thead = document.createElement('thead'),
+		tr    = document.createElement('tr'),
+		thTxt = ['Test', 'Passed', 'Sanitised', 'Optimised'],
+		tbody = document.createElement('tbody')
+	;
+	thTxt.forEach(function(e, i){
+		var
+			th = document.createElement('th')
+		;
+		th.appendChild(document.createTextNode(e));
+		tr.appendChild(th);
+	});
+	tr.onclick = function(e){
+		if(e.target.nodeName == 'TH'){
+			var
+				needsToggled = tbody.querySelectorAll('tr > *:nth-child(' + (Array.prototype.slice.call(tr.childNodes).indexOf(e.target) + 1) + ')')
+			;
+			for(var i=0;i<needsToggled.length;++i){
+				needsToggled[i].classList.toggle('toggle');
+			}
+		}
+	}
+	if(Float32Array){
+		tr.querySelector('th:nth-child(3)').textContent += ' (as Array)';
+		tr.querySelector('th:nth-child(4)').textContent += ' (as Array)';
+	}
+	thead.appendChild(tr);
+	table.appendChild(thead);
+	table.appendChild(tbody);
+
+	var
+		randomData1 = randomArray(10),
+		randomTest1 = Float32Array ? new Float32Array(24) : new Array(24),
+		randomTest2 = Float32Array ? new Float32Array(24) : new Array(24)
+	;
+	randomTest1[0] = 0;
+	randomTest1[1] = 0;
+	randomData1.sort();
+	for(var i=0;i<randomData1.length;++i){
+		randomTest1[(i * 2) + 2] = randomTest2[(i * 2) + 2] = randomTest2[(i * 2) + 3] = 0;
+		randomTest1[(i * 2) + 3] = randomData1[i];
+		if(i % 2 == 0){
+			randomTest2[(i * 2) + 3] = randomData1[i] * .001;
+		}
+	}
+	randomTest1[22] = randomTest2[22] = 0;
+	randomTest1[23] = randomTest2[23] = 1;
+	tests.push(randomTest1);
+	tests.push(randomTest2);
+	
+	
+	tests.forEach(function(e){
+		var
+			tr  = document.createElement('tr'),
+			th  = document.createElement('th'),
+			td  = document.createElement('td'),
+			td2 = document.createElement('td'),
+			td3 = document.createElement('td')
+		;
+		th.setAttribute('scope', 'row');
+		th.appendChild(document.createTextNode(JSON.stringify(forceArray(e))));
+		try{
+			td2.appendChild(document.createTextNode(
+				JSON.stringify(forceArray(lineOpt.twoD.sanitise(e)))
+			));
+			td.appendChild(document.createTextNode('Pass'));
+			try{
+				td3.appendChild(document.createTextNode(
+					JSON.stringify(forceArray(lineOpt.twoD.optimise(e, {'minDistance': .001})))
+				));
+			}catch(e){
+				tr.className = 'fail';
+				td3.appendChild(document.createTextNode(e.message));
+			}
+		}catch(e){
+			tr.className = 'fail';
+			td.appendChild(document.createTextNode('Fail'));
+			td2.appendChild(document.createTextNode(e.message));
+		}
+		tr.appendChild(th);
+		[td, td2, td3].forEach(function(e){
+			tr.appendChild(e);
+		});
+		tbody.appendChild(tr);
+	});
+	document.body.appendChild(table);
+}
+</script>
+<style>
+tr td:nth-child(2){
+	background: #0f0 ;
+}
+tr.fail td:nth-child(2){
+	background: #f00 ;
+}
+tbody > tr > *{
+	max-width: 25em ;
+	overflow: hidden ;
+	transition: max-width 0.5s ;
+}
+tbody > tr > *.toggle{
+	max-width: 100em ;
+}
+</style>
+</head>
+<body>
+JavaScript not enabled on this page.
+</body>
+</html>
