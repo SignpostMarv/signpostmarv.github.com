@@ -277,26 +277,32 @@
     }
 
     function normaliseVectors(sanitised){
-        var
-            copy = Float32Array ?
-                new Float32Array(sanitised.length) :
-                new Array(sanitised.length)
-        ;
-        for(var i=0;i<copy.length;i+=2){
+        return (function(stdlib, foreign, heap){
+            'use asm';
             var
-                x = sanitised[i + 0],
-                y = sanitised[i + 1]
+                copy = stdlib['Float32Array'] ?
+                    new stdlib['Float32Array'](heap.length|0) :
+                    new stdlib['Array'](heap.length|0)
             ;
-            if(x == 0 && y == 0){
-                copy[i + 0] = copy[i + 1] = 0;
-                continue;
+            for(var i=0|0;i<copy.length|0;i+=2|0){
+                var
+                    x = +heap[i      ],
+                    y = +heap[i + 1|0]
+                ;
+                if(x == +0 && y == +0){
+                    copy[i] = copy[i + 1|0] = +0;
+                    continue;
+                }
+                var
+                    magnitude = +stdlib['Math']['sqrt']((x * x) + (y * y))
+                ;
+                copy[i + 0] = +x / +magnitude;
+                copy[i + 1] = +y / +magnitude;
             }
-            var
-                magnitude = sqrt((x * x) + (y * y))
-            ;
-            copy[i + 0] = x / magnitude;
-            copy[i + 1] = y / magnitude;
-        }
+            return {
+                'output' : copy
+            };
+        })(window, {}, sanitised)['output'];
 
         return copy;
     }
@@ -387,18 +393,18 @@
 
     function reduceByDistance(sanitised, minDistance){
         return (function(stdlib, foreign, heap){
-			'use asm';
+            'use asm';
             var
                 minDistance = +stdlib['Math']['abs'](
                     +stdlib['Math']['max'](
-						+.0001,
-						+foreign['minDistance'] || +0
-					)
-				),
+                        +.0001,
+                        +foreign['minDistance'] || +0
+                    )
+                ),
                 output  = new stdlib['optArray'](heap.length|0),
                 counter = 2|0
             ;
-			minDistance *= minDistance;
+            minDistance *= minDistance;
             for(var i=2|0;i<((heap.length|0) - (2|0));i+=2|0){
                 var
                     x = +heap[i + 2|0] - +heap[i],
