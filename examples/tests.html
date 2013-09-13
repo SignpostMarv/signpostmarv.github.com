@@ -108,12 +108,12 @@ window.onload = function(){
 		th.appendChild(document.createTextNode(JSON.stringify(forceArray(e))));
 		try{
 			td2.appendChild(document.createTextNode(
-				JSON.stringify(forceArray(lineOpt.twoD.sanitise(e)))
+				JSON.stringify(forceArray(lineOpt.sanitise(e)))
 			));
 			td.appendChild(document.createTextNode('Pass'));
 			try{
 				td3.appendChild(document.createTextNode(
-					JSON.stringify(forceArray(lineOpt.twoD.optimise(e, {'minDistance': .001})))
+					JSON.stringify(forceArray(lineOpt.optimise(e, {'minDistance': .001})))
 				));
 			}catch(e){
 				tr.className = 'fail';

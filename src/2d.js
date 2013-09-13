@@ -252,7 +252,7 @@
         });
         var
             output = sanitiseLineSegmentArray(input,
-				options['skipUniquesTest'])
+                options['skipUniquesTest'])
         ;
 
         if(options['ignoreConsecutiveDuplicates']){
@@ -403,6 +403,46 @@
         'sanitize' : sanitiseLineSegmentArray,
         'optimise' : optimiseLineSegmentArray,
         'optimize' : optimiseLineSegmentArray
+    }
+
+    lineOpt['sanitise'] = lineOpt['sanitize'] = function(){
+        var
+            args       = arguments,
+            dimensions = args.length >= 3 ?
+                parseInt(args[2]) : (
+                    (args.length >= 2 && typeof(args[1]) == 'number') ?
+                        args[1] :
+                        2
+                )
+        ;
+        switch(dimensions){
+            case 2:
+                return sanitiseLineSegmentArray.apply(window, arguments);
+            case 3:
+                throw new Error('3D not yet supported.');
+            default:
+                throw new Error('Unsupported dimensions specified.');
+        }
+    }
+
+    lineOpt['optimise'] = lineOpt['optimize'] = function(){
+        var
+            args       = arguments,
+            dimensions = args.length >= 3 ?
+                parseInt(args[2]) : (
+                    (args.length >= 2 && typeof(args[1]) == 'number') ?
+                        args[1] :
+                        2
+                )
+        ;
+        switch(dimensions){
+            case 2:
+                return optimiseLineSegmentArray.apply(window, arguments);
+            case 3:
+                throw new Error('3D not yet supported.');
+            default:
+                throw new Error('Unsupported dimensions specified.');
+        }
     }
 
     if(!window['lineOpt']){
