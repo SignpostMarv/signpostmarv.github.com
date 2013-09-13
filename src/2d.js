@@ -76,7 +76,21 @@
     }
 
 
-    function sanitiseLineSegmentArray(input){
+    function hasUniques(input){
+        var
+            prevX = input[0],
+            prevY = input[1]
+        ;
+        for(var i=2;i<input['length'];i+=2){
+            if(input[i] != prevX || input[i + 1] != prevY){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function sanitiseLineSegmentArray(input, skipUniquesTest){
+        skipUniquesTest = !!skipUniquesTest;
         if(!isSupportedArray(input)){
             throw new Error('value not a supported array type');
         }else if(isNumericOnlyArray(input)){
@@ -95,6 +109,12 @@
                             'Typed array contains NaN or Infinity'
                         );
                     }
+                }
+                if(!skipUniquesTest && !hasUniques(input)){
+                    throw new Error(
+                        'line segment array requires at least two ' +
+                        'unique entries.'
+                    );
                 }
                 return input;
             }
@@ -121,6 +141,11 @@
                             throw new Error(
                                 'Numeric array inputs must have length ' +
                                 'greater than or equal to 4'
+                            );
+                        }else if(!skipUniquesTest && !hasUniques(input)){
+                            throw new Error(
+                                'line segment array requires at least two ' +
+                                'unique entries.'
                             );
                         }
                         return lazyInputCheck;
@@ -167,6 +192,12 @@
                     numericArray[(i * 2) + 0] = e['x'];
                     numericArray[(i * 2) + 1] = e['y'];
                 });
+                if(!skipUniquesTest && !hasUniques(numericArray)){
+                    throw new Error(
+                        'line segment array requires at least two unique ' +
+                        'entries.'
+                    );
+                }
                 return numericArray;
             }else if(input['length'] % 2 == 0){
                 if(input['length'] < 4){
@@ -186,7 +217,12 @@
                     }
                 }
                 if(numeric){
-                    if(input['length'] % 2 != 0){
+                    if(!skipUniquesTest && !hasUniques(input)){
+                        throw new Error(
+                            'line segment array requires at least two ' +
+                            'unique entries.'
+                        );
+                    }else if(input['length'] % 2 != 0){
                         throw new Error(
                             'Numeric array inputs must have a length that ' +
                             'is multiples of 2'
@@ -204,19 +240,20 @@
     }
 
     function optimiseLineSegmentArray(input, options){
-        var
-            output = sanitiseLineSegmentArray(input),
-            options   = options || {}
-        ;
+        options   = options || {};
         [
             'ignoreConsecutiveDuplicates',
             'reduceByVector',
-            'reduceByDistance',
+            'reduceByDistance'
         ].forEach(function(e){
             if(options[e] == undefined){
                 options[e] = true;
             }
         });
+        var
+            output = sanitiseLineSegmentArray(input,
+				options['skipUniquesTest'])
+        ;
 
         if(options['ignoreConsecutiveDuplicates']){
             output = ignoreConsecutiveDuplicates(output);
