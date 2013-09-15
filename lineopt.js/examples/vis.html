@@ -2,6 +2,17 @@
 <head>
 <script src="../src/2d.js"></script>
 <script>
+function showSource(selector){
+	var
+		element = document.createElement('code')
+	;
+	element.style.whiteSpace = 'pre';
+	element.style.float = 'left';
+	element.appendChild(document.createTextNode(document.querySelector(selector).textContent));
+	document.body.appendChild(element);
+}
+</script>
+<script id=vis>
 window.onload = function(){
 	function randomArray(length){
 		var
@@ -43,6 +54,7 @@ window.onload = function(){
 	draw(lineOpt.enhance(data), '#00f', 2);
 
 	document.body.appendChild(canvas);
+	showSource('#vis');
 }
 </script>
 <body>
