@@ -1,0 +1,52 @@
+<html>
+<head>
+<script src="../src/2d.js"></script>
+<script>
+window.onload = function(){
+	function randomArray(length){
+		var
+			output = Float32Array ? new Float32Array(length) : new Array(length)
+		;
+		for(var i=0;i<length;++i){
+			output[i] = Math.random()
+		}
+
+		return output;
+	}
+
+	var
+		canvas = document.createElement('canvas'),
+		data   = randomArray(200)
+	;
+	canvas.width = 800;
+	canvas.height = 600;
+	for(var i=0;i<data.length;++i){
+		data[i] *= (i % 2 == 0) ? canvas.width : canvas.height;
+	}
+	var
+		ctx = canvas.getContext('2d')
+	;
+
+	function draw(lineData, style, width){
+		ctx.beginPath();
+		ctx.moveTo(lineData[0], lineData[1]);
+		ctx.strokeStyle = style;
+		ctx.lineWidth = width || 1;
+		for(var i=2;i<lineData.length;i+=2){
+			ctx.lineTo(lineData[i], lineData[i + 1]);
+		}
+		ctx.stroke();
+	}
+
+	draw(data, '#f00', 6);
+//	console.log(data);
+//	console.log(lineOpt.sanitise(data));
+//	console.log(lineOpt.optimise(data));
+	draw(lineOpt.optimise(data), '#0f0', 2);
+
+	document.body.appendChild(canvas);
+}
+</script>
+<body>
+</body>
+</html>
