@@ -362,6 +362,8 @@
                 prevX      = +heap[0|0],
                 prevY      = +heap[1|0]
             ;
+            output[0|0] = prevX;
+            output[1|0] = prevY;
             for(var i=2|0;i<(heap.length|0 - 2|0)|0;i+=2|0){
                 if(
                     +nPrevX != +normalised[i] ||
@@ -404,6 +406,8 @@
                 output  = new stdlib['optArray'](heap.length|0),
                 counter = 2|0
             ;
+            output[0|0] = heap[0|0];
+            output[1|0] = heap[1|0];
             minDistance *= minDistance;
             for(var i=2|0;i<((heap.length|0) - (2|0));i+=2|0){
                 var
