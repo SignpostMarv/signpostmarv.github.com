@@ -26,7 +26,7 @@
     var
         lineOpt         = window['lineOpt'] || {},
         Error           = window['Error'],
-        sqrt            = window['Math']['sqrt'],
+        Math            = window['Math'],
         isNumeric       = function(input){
             return typeof(input) == 'number'
         },
@@ -267,6 +267,32 @@
         return output;
     }
 
+    function enhanceLineSegmentArray(input, options){
+        options   = options || {};
+        [
+            'smoothByAngle'
+        ].forEach(function(e){
+            if(options[e] == undefined){
+                options[e] = true;
+            }
+        });
+        var
+            output = optimiseLineSegmentArray(input,{
+                'reduceByDistance' : false,
+                'skipUniquesTest'  : options['skipUniquesTest']
+            })
+        ;
+        if(options['smoothByAngle']){
+            output = smoothByAngle(output);
+        }
+        return optimiseLineSegmentArray(output,{
+            'ignoreConsecutiveDuplicates' : false,
+            'reduceByVector'   : false,
+            'reduceByDistance' : true,
+            'skipUniquesTest'  : options['skipUniquesTest']
+        });
+    };
+
     function normaliseVectors(sanitised){
         return (function(stdlib, foreign, heap){
             'use asm';
@@ -432,11 +458,166 @@
         }, {'minDistance':minDistance}, sanitised)['output'];
     }
 
+    function lerp(ax, ay, bx, by, c){
+        var
+            c = +Math['max'](0, Math['min'](1, c * 1)),
+            heapArg = [ax, ay, bx, by, c]
+        ;
+        if(Float32Array){
+            heapArg = new Float32Array(heapArg);
+        }
+        return (function(stdlib, foreign, heap){
+            var
+                output = new foreign['optArray'](2|0)
+            ;
+            output[0|0] = +heap[0|0] +
+                ((+heap[2|0] - +heap[0|0]) * +heap[4|0]);
+            output[1|0] = +heap[1|0] +
+                ((+heap[3|0] - +heap[1|0]) * +heap[4|0]);
+            return {
+                'output' : output
+            }
+        })(window, {
+            'optArray' : Float32Array ? Float32Array : Array
+        }, heapArg)['output'];
+    }
+
+    function smoothByAngle(sanitised, minAngle, maxAngle){
+        if(sanitised['length'] < 6){
+            return sanitised;
+        }
+        minAngle = parseFloat(minAngle || 15) * (Math['PI'] / 180);
+        maxAngle = parseFloat(maxAngle || 90) * (Math['PI'] / 180);
+        function distance(heapArg){
+            if(Float32Array && !(heapArg instanceof Float32Array)){
+                heapArg = new Float32Array(heapArg)
+            }
+            return (function(stdlib, foreign, heap){
+                'use asm';
+                return {
+                    'output' : +stdlib['sqrt'](
+                        +stdlib['abs'](
+                            +stdlib['pow'](+heap[2|0] - +heap[0|0], 2|0) +
+                            +stdlib['pow'](+heap[3|0] - +heap[1|0], 2|0)
+                        )
+                    )
+                };
+            })(Math, {}, heapArg)['output'];
+        }
+        function angle(heapArg){
+            if(Float32Array && !(heapArg instanceof Float32Array)){
+                heapArg = new Float32Array(heapArg)
+            }
+            var
+                d12 = Float32Array ? new Float32Array(
+                    heapArg['buffer']['slice'](0 * 4, 4 * 4)
+                ) : heapArg['slice'](0, 4),
+                d13 = [heapArg[0], heapArg[1], heapArg[4], heapArg[5]],
+                d23 = Float32Array ? new Float32Array(
+                    heapArg['buffer']['slice'](2 * 4, 6 * 4)
+                ) : heapArg['slice'](2, 6),
+                heapArg = [d12, d13, d23]
+            ;
+            heapArg.forEach(function(e,i){
+                heapArg[i] = distance(e);
+            });
+            if(Float32Array){
+                heapArg = new Float32Array(heapArg)
+            }
+            return (function(stdlib, foreign, heap){
+                'use asm';
+                return {
+                    'output' : stdlib['acos'](+(
+                        +(+heap[0|0] * +heap[0|0]) +
+                        +(+heap[1|0] * +heap[1|0]) -
+                        +(+heap[2|0] * +heap[2|0])
+                    ) / +(
+                        +2 *
+                        +(+heap[0|0] * +heap[0|0]) *
+                        +(+heap[1|0] * +heap[1|0])
+                    ))
+                };
+            })(Math, {}, heapArg)['output'];
+        }
+
+        return (function(stdlib, foreign, heap){
+            'use asm';
+            var
+                output = new stdlib['Array'](heap[0|0], heap[1|0]),
+                counter = 2|0,
+                minAngle = +foreign['minAngle'],
+                maxAngle = +foreign['maxAngle'],
+                prevX    = heap[0|0],
+                prevY    = heap[1|0]
+            ;
+            for(var i=2|0;i<((heap.length|0) - (3|0));i+=2|0){
+                var
+                    angleArg = new stdlib['Array'](
+                        prevX        , prevY,
+                        heap[i]      , heap[i + 1|0],
+                        heap[i + 2|0], heap[i + 3|0]
+                    ),
+                    angle = +foreign['angle'](stdlib['Float32Array']
+                        ? new stdlib['Float32Array'](angleArg)
+                        : angleArg
+                    )
+                ;
+                if(angle > minAngle && angle < maxAngle){
+                    for(var j=+0.001;j<+1;j+=+0.001){
+                        var
+                            newPoint1 = foreign['lerp'](
+                                +heap[i - 2|0],
+                                +heap[i - 1|0],
+                                +heap[i],
+                                +heap[i + 1|0],
+                                j
+                            ),
+                            newPoint2 = foreign['lerp'](
+                                +heap[i],
+                                +heap[i + 1|0],
+                                +heap[i + 2|0],
+                                +heap[i + 3|0],
+                                j
+                            ),
+                            newPoint3 = foreign['lerp'](
+                                newPoint1[0|0],
+                                newPoint1[1|0],
+                                newPoint2[0|0],
+                                newPoint2[1|0],
+                                +stdlib['Math']['pow'](j, 75|0)
+                            )
+                        ;
+                        prevX = output[counter++] = +newPoint3[0|0];
+                        prevY = output[counter++] = +newPoint3[1|0];
+                    }
+                }else{
+                    prevX = output[counter++] = +heap[i];
+                    prevY = output[counter++] = +heap[i + 1|0];
+                }
+            }
+            output[counter++] = heap[(heap.length|0) - (2|0)];
+            output[counter++] = heap[(heap.length|0) - (1|0)];
+            return {
+                'output' : (
+                    stdlib['Float32Array']
+                        ? new stdlib['Float32Array'](output)
+                        : output
+                )
+            }
+        })(window, {
+            'angle'    : angle,
+            'lerp'     : lerp,
+            'minAngle' : minAngle,
+            'maxAngle' : maxAngle
+        }, sanitised)['output'];
+    }
+
     lineOpt['twoD'] = {
         'sanitise' : sanitiseLineSegmentArray,
         'sanitize' : sanitiseLineSegmentArray,
         'optimise' : optimiseLineSegmentArray,
-        'optimize' : optimiseLineSegmentArray
+        'optimize' : optimiseLineSegmentArray,
+        'enhance'  : enhanceLineSegmentArray
     }
 
     lineOpt['sanitise'] = lineOpt['sanitize'] = function(){
@@ -472,6 +653,26 @@
         switch(dimensions){
             case 2:
                 return optimiseLineSegmentArray.apply(window, arguments);
+            case 3:
+                throw new Error('3D not yet supported.');
+            default:
+                throw new Error('Unsupported dimensions specified.');
+        }
+    }
+
+    lineOpt['enhance'] = function(){
+        var
+            args       = arguments,
+            dimensions = args.length >= 3 ?
+                parseInt(args[2]) : (
+                    (args.length >= 2 && typeof(args[1]) == 'number') ?
+                        args[1] :
+                        2
+                )
+        ;
+        switch(dimensions){
+            case 2:
+                return enhanceLineSegmentArray.apply(window, arguments);
             case 3:
                 throw new Error('3D not yet supported.');
             default:

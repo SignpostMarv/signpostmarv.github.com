@@ -16,7 +16,7 @@ window.onload = function(){
 
 	var
 		canvas = document.createElement('canvas'),
-		data   = randomArray(200)
+		data   = randomArray(20)
 	;
 	canvas.width = 800;
 	canvas.height = 600;
@@ -38,11 +38,9 @@ window.onload = function(){
 		ctx.stroke();
 	}
 
-	draw(data, '#f00', 6);
-//	console.log(data);
-//	console.log(lineOpt.sanitise(data));
-//	console.log(lineOpt.optimise(data));
-	draw(lineOpt.optimise(data), '#0f0', 2);
+	draw(data, '#f00', 10);
+	draw(lineOpt.optimise(data), '#0f0', 6);
+	draw(lineOpt.enhance(data), '#00f', 2);
 
 	document.body.appendChild(canvas);
 }
