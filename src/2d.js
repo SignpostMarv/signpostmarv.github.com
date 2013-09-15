@@ -351,7 +351,7 @@
                 counter = 2|0,
                 distances  = new stdlib['optArray']((heap.length|0) - (2|0))
             ;
-            for(var i=0|0;i<(heap.length|0 - 2|0);i+=2|0){
+            for(var i=0|0;i<(heap.length|0) - (2|0);i+=2|0){
                 distances[i + 0|0] = +heap[i + 2|0] - +heap[i + 0|0];
                 distances[i + 1|0] = +heap[i + 3|0] - +heap[i + 1|0];
             }
@@ -364,13 +364,13 @@
             ;
             output[0|0] = prevX;
             output[1|0] = prevY;
-            for(var i=2|0;i<(heap.length|0 - 2|0)|0;i+=2|0){
+            for(var i=2|0;i<(heap.length|0) - (2|0)|0;i+=2|0){
                 if(
                     +nPrevX != +normalised[i] ||
                     +nPrevY != +normalised[i + 1|0]
                 ){
-                    nPrevX = +normalised[i + 0];
-                    nPrevY = +normalised[i + 1];
+                    nPrevX = +normalised[i];
+                    nPrevY = +normalised[i + 1|0];
                     output[counter++] = prevX  = +heap[i];
                     output[counter++] = prevY  = +heap[i + 1|0];
                 }
