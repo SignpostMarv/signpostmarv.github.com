@@ -486,8 +486,8 @@
         if(sanitised['length'] < 6){
             return sanitised;
         }
-        minAngle = parseFloat(minAngle || 15) * (Math['PI'] / 180);
-        maxAngle = parseFloat(maxAngle || 90) * (Math['PI'] / 180);
+        minAngle = parseFloat(minAngle || 5) * (Math['PI'] / 180);
+        maxAngle = parseFloat(maxAngle || 270) * (Math['PI'] / 180);
         function distance(heapArg){
             if(Float32Array && !(heapArg instanceof Float32Array)){
                 heapArg = new Float32Array(heapArg)
@@ -563,11 +563,29 @@
                     )
                 ;
                 if(angle > minAngle && angle < maxAngle){
+                    var
+                        startPoint = foreign['lerp'](
+                            +heap[i - 2|0],
+                            +heap[i - 1|0],
+                            +heap[i],
+                            +heap[i + 1|0],
+                            ((angle - minAngle) / (maxAngle - minAngle))
+                        ),
+                        endPoint   = foreign['lerp'](
+                            +heap[i],
+                            +heap[i + 1|0],
+                            +heap[i + 2|0],
+                            +heap[i + 3|0],
+                            ((angle - minAngle) / (maxAngle - minAngle))
+                        )
+                    ;
+                    output[counter++] = +startPoint[0|0];
+                    output[counter++] = +startPoint[1|0];
                     for(var j=+0.001;j<+1;j+=+0.001){
                         var
                             newPoint1 = foreign['lerp'](
-                                +heap[i - 2|0],
-                                +heap[i - 1|0],
+                                +startPoint[0|0],
+                                +startPoint[1|0],
                                 +heap[i],
                                 +heap[i + 1|0],
                                 j
@@ -575,8 +593,8 @@
                             newPoint2 = foreign['lerp'](
                                 +heap[i],
                                 +heap[i + 1|0],
-                                +heap[i + 2|0],
-                                +heap[i + 3|0],
+                                +endPoint[0|0],
+                                +endPoint[1|0],
                                 j
                             ),
                             newPoint3 = foreign['lerp'](
@@ -584,12 +602,19 @@
                                 newPoint1[1|0],
                                 newPoint2[0|0],
                                 newPoint2[1|0],
-                                +stdlib['Math']['pow'](j, 75|0)
+                                +stdlib['Math']['pow'](j,
+                                    +100 * (
+                                        (angle - minAngle) /
+                                        (maxAngle - minAngle)
+                                    )
+                                )
                             )
                         ;
                         prevX = output[counter++] = +newPoint3[0|0];
                         prevY = output[counter++] = +newPoint3[1|0];
                     }
+                    output[counter++] = +endPoint[0|0];
+                    output[counter++] = +endPoint[1|0];
                 }else{
                     prevX = output[counter++] = +heap[i];
                     prevY = output[counter++] = +heap[i + 1|0];
