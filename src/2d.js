@@ -41,8 +41,6 @@
         numericOnlyArrays = supportedArrays.slice(1)
     ;
 
-
-
     function isSupportedArray(input){
         for(var i=0;i<supportedArrays.length;++i){
             if(supportedArrays[i] && (
@@ -55,17 +53,12 @@
         return false;
     }
 
-
-
-
     function isArray(input){
         return (input && (
             input instanceof Array ||
             input.prototype instanceof Array
         ));
     }
-
-
 
     function isNumericOnlyArray(input){
         for(var i=0;i<numericOnlyArrays.length;++i){
@@ -78,8 +71,6 @@
         }
         return false;
     }
-
-
 
     function hasUniques(input){
         var
