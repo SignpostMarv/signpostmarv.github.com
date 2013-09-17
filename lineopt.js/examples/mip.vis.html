@@ -1,0 +1,114 @@
+<html>
+<head>
+<script src="../src/2d.js"></script>
+<script>
+function showSource(selector){
+	var
+		element = document.createElement('code')
+	;
+	element.appendChild(document.createTextNode(document.querySelector(selector).textContent));
+	document.body.appendChild(element);
+}
+</script>
+<script id=vis>
+window.onload = function(){
+	function randomArray(length){
+		var
+			output = Float32Array ? new Float32Array(length) : new Array(length)
+		;
+		for(var i=0;i<length;++i){
+			output[i] = Math.random()
+		}
+
+		return output;
+	}
+
+	var
+		form   = document.querySelector('form'),
+		canvas = document.createElement('canvas'),
+		data   = randomArray(20),
+		mip,
+		keys = []
+	;
+	canvas.width = 800;
+	canvas.height = 600;
+	for(var i=0;i<data.length;++i){
+		data[i] *= (i % 2 == 0) ? canvas.width : canvas.height;
+	}
+	var
+		ctx = canvas.getContext('2d')
+	;
+
+	function draw(lineData, style, width, mipLevel){
+		var
+			p = form.querySelector('p')
+		;
+		while(p.hasChildNodes()){
+			p.removeChild(p.firstChild);
+		}
+		p.appendChild(document.createTextNode('data length: ' + lineData.length));
+		ctx.beginPath();
+		ctx.moveTo(lineData[0], lineData[1]);
+		ctx.strokeStyle = style;
+		ctx.lineWidth = width || 1;
+		for(var i=2;i<lineData.length;i+=2){
+			ctx.lineTo(lineData[i], lineData[i + 1]);
+		}
+		ctx.stroke();
+		if(mipLevel != undefined && mipLevel > 0){
+			ctx.save();
+			var
+				mipDiv = 1 << mipLevel;
+			;
+			ctx.scale(1 / mipDiv, 1 / mipDiv);
+			ctx.beginPath();
+			ctx.moveTo(lineData[0], lineData[1]);
+			ctx.strokeStyle = '#000';
+			ctx.lineWidth = mipDiv;
+			for(var i=2;i<lineData.length;i+=2){
+				ctx.lineTo(lineData[i], lineData[i + 1]);
+			}
+			ctx.stroke();
+			ctx.restore();
+		}
+	}
+
+	mip = lineOpt.mip(data, {
+		'enhance':true,
+		'minDistance' : .1
+	});
+	function redraw(mipLevel){
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		draw(data, '#f00', 10);
+		draw(mip[mipLevel], '#0f0', 2, mipLevel);
+	}
+	form.onchange = function(e){
+		if(e.target.id == 'mip'){
+			e.target.parentNode.querySelector('output').textContent = e.target.value;
+			redraw(e.target.value);
+		}
+	};
+	redraw(0);
+
+	document.body.appendChild(canvas);
+	showSource('#vis');
+}
+</script>
+<style>
+code{
+	white-space: pre ;
+	float : left ;
+}
+canvas{
+	background: #fff ;
+}
+</style>
+<body>
+<form>
+	<fieldset>
+		<label for=mip>display mip level: </label><input id=mip type=range min=0 max=7 value=0><output for=mip>0</output>
+		<p></p>
+	</fieldset>
+</form>
+</body>
+</html>
