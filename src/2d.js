@@ -565,8 +565,8 @@
                 if(angle > minAngle && angle < maxAngle){
                     var
                         startPoint = foreign['lerp'](
-                            +heap[i - 2|0],
-                            +heap[i - 1|0],
+                            prevX,
+                            prevY,
                             +heap[i],
                             +heap[i + 1|0],
                             ((angle - minAngle) / (maxAngle - minAngle))
@@ -576,7 +576,7 @@
                             +heap[i + 1|0],
                             +heap[i + 2|0],
                             +heap[i + 3|0],
-                            ((angle - minAngle) / (maxAngle - minAngle))
+                            +1 - ((angle - minAngle) / (maxAngle - minAngle))
                         )
                     ;
                     output[counter++] = +startPoint[0|0];
