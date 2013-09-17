@@ -289,7 +289,8 @@
             'ignoreConsecutiveDuplicates' : false,
             'reduceByVector'   : false,
             'reduceByDistance' : true,
-            'skipUniquesTest'  : options['skipUniquesTest']
+            'skipUniquesTest'  : options['skipUniquesTest'],
+            'minDistance'      : options['minDistance']
         });
     };
 
@@ -410,7 +411,7 @@
         }, {'normaliseVectors':normaliseVectors}, sanitised)['output'];
     }
 
-    function reduceByDistance(sanitised, minDistance){
+    function reduceByDistance(sanitised, min){
         return (function(stdlib, foreign, heap){
             'use asm';
             var
@@ -455,7 +456,7 @@
             'Math'         : {'abs':Math.abs, 'max':Math.max},
             'optArray'     : Float32Array ? Float32Array : Array,
             'Float32Array' : Float32Array
-        }, {'minDistance':minDistance}, sanitised)['output'];
+        }, {'minDistance':min}, sanitised)['output'];
     }
 
     function lerp(ax, ay, bx, by, c){
@@ -703,6 +704,43 @@
             default:
                 throw new Error('Unsupported dimensions specified.');
         }
+    }
+
+    lineOpt['mip'] = function(data, opts, dimensions){
+        var
+            dimensions = Math.max(2, Math.min(3, parseInt(dimensions || 2))),
+            opts = opts || {},
+            minDistance,
+            mipLevel,
+            minMip,
+            maxMip,
+            mipData = {},
+            mipOpts
+        ;
+        minDistance = opts['minDistance'] = opts['minDistance'] || .0001;
+        minMip = opts['minMip'] = parseInt(opts['minMip'] || 0);
+        maxMip = opts['maxMip'] = parseInt(opts['maxMip'] || 7);
+        if(minMip > maxMip){
+            mipLevel = maxMip;
+            maxMip = minMip;
+            minMip = mipLevel;
+        }
+        switch(dimensions){
+            case 2:
+                for(mipLevel=minMip;mipLevel<=maxMip;++mipLevel){
+                    mipOpts = opts;
+                    mipOpts['minDistance'] = minDistance * (1 << mipLevel);
+                    mipData[mipLevel + ''] = mipOpts['enhance']
+                        ? lineOpt['enhance'](data, mipOpts, dimensions)
+                        : lineOpt['optimise'](data, mipOpts, dimensions);
+                }
+            break;
+            case 3:
+                throw new Error('3D not yet supported.');
+            default:
+                throw new Error('Unsupported dimensions specified.');
+        }
+        return mipData;
     }
 
     if(!window['lineOpt']){
