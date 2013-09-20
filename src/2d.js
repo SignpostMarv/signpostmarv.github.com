@@ -351,81 +351,81 @@
     }
 
     function reduceByVector(heap){
-            var
-                output  = new optArray(heap.length|0),
-                counter = 2|0,
-                distances  = new optArray((heap.length|0) - (2|0))
-            ;
-            for(var i=0|0;i<(heap.length|0) - (2|0);i+=2|0){
-                distances[i + 0|0] = +heap[i + 2|0] - +heap[i + 0|0];
-                distances[i + 1|0] = +heap[i + 3|0] - +heap[i + 1|0];
+        var
+            output  = new optArray(heap.length|0),
+            counter = 2|0,
+            distances  = new optArray((heap.length|0) - (2|0))
+        ;
+        for(var i=0|0;i<(heap.length|0) - (2|0);i+=2|0){
+            distances[i + 0|0] = +heap[i + 2|0] - +heap[i + 0|0];
+            distances[i + 1|0] = +heap[i + 3|0] - +heap[i + 1|0];
+        }
+        var
+            normalised = normaliseVectors(distances),
+            nPrevX     = +normalised[0|0],
+            nPrevY     = +normalised[1|0],
+            prevX      = +heap[0|0],
+            prevY      = +heap[1|0]
+        ;
+        output[0|0] = prevX;
+        output[1|0] = prevY;
+        for(var i=2|0;i<(heap.length|0) - (2|0)|0;i+=2|0){
+            if(
+                +nPrevX != +normalised[i] ||
+                +nPrevY != +normalised[i + 1|0]
+            ){
+                nPrevX = +normalised[i];
+                nPrevY = +normalised[i + 1|0];
+                output[counter++] = prevX  = +heap[i];
+                output[counter++] = prevY  = +heap[i + 1|0];
             }
-            var
-                normalised = normaliseVectors(distances),
-                nPrevX     = +normalised[0|0],
-                nPrevY     = +normalised[1|0],
-                prevX      = +heap[0|0],
-                prevY      = +heap[1|0]
-            ;
-            output[0|0] = prevX;
-            output[1|0] = prevY;
-            for(var i=2|0;i<(heap.length|0) - (2|0)|0;i+=2|0){
-                if(
-                    +nPrevX != +normalised[i] ||
-                    +nPrevY != +normalised[i + 1|0]
-                ){
-                    nPrevX = +normalised[i];
-                    nPrevY = +normalised[i + 1|0];
-                    output[counter++] = prevX  = +heap[i];
-                    output[counter++] = prevY  = +heap[i + 1|0];
-                }
-            }
-            output[counter++] = heap[(heap.length|0) - (2|0)];
-            output[counter++] = heap[(heap.length|0) - (1|0)];
-            if(Float32Array){
-                output = new Float32Array(output['buffer']['slice'](0, counter * 4|0));
-            }else{
-                output = output['slice'](0, counter);
-            }
+        }
+        output[counter++] = heap[(heap.length|0) - (2|0)];
+        output[counter++] = heap[(heap.length|0) - (1|0)];
+        if(Float32Array){
+            output = new Float32Array(output['buffer']['slice'](0, counter * 4|0));
+        }else{
+            output = output['slice'](0, counter);
+        }
 
         return output;
     }
 
     function reduceByDistance(heap, min){
-            var
-                minDistance = +Math['abs'](
-                    +Math['max'](
-                        +.0001,
-                        +min || +0
-                    )
-                ),
-                output  = new optArray(heap.length|0),
-                counter = 2|0
-            ;
-            output[0|0] = heap[0|0];
-            output[1|0] = heap[1|0];
-            minDistance *= minDistance;
-            for(var i=2|0;i<((heap.length|0) - (2|0));i+=2|0){
-                var
-                    x = +heap[i + 2|0] - +heap[i],
-                    y = +heap[i + 3|0] - +heap[i + 1|0],
-                    currentMag = +Math.abs(
-                        +(x * x) +
-                        +(y * y)
-                    )
-                ;
-                if(currentMag >= minDistance){
-                    output[counter++] = +heap[i];
-                    output[counter++] = +heap[i + 1|0];
-                }
-            }
-            output[counter++] = heap[(heap.length|0) - (2|0)];
-            output[counter++] = heap[(heap.length|0) - (1|0)];
-            if(Float32Array){
-                output = new Float32Array(output['buffer']['slice'](0|0, counter * 4|0));
-            }else{
-                output = output['slice'](0|0, counter);
-            }
+		var
+			minDistance = +Math['abs'](
+				+Math['max'](
+					+.0001,
+					+min || +0
+				)
+			),
+			output  = new optArray(heap.length|0),
+			counter = 2|0
+		;
+		output[0|0] = heap[0|0];
+		output[1|0] = heap[1|0];
+		minDistance *= minDistance;
+		for(var i=2|0;i<((heap.length|0) - (2|0));i+=2|0){
+			var
+				x = +heap[i + 2|0] - +heap[i],
+				y = +heap[i + 3|0] - +heap[i + 1|0],
+				currentMag = +Math.abs(
+					+(x * x) +
+					+(y * y)
+				)
+			;
+			if(currentMag >= minDistance){
+				output[counter++] = +heap[i];
+				output[counter++] = +heap[i + 1|0];
+			}
+		}
+		output[counter++] = heap[(heap.length|0) - (2|0)];
+		output[counter++] = heap[(heap.length|0) - (1|0)];
+		if(Float32Array){
+			output = new Float32Array(output['buffer']['slice'](0|0, counter * 4|0));
+		}else{
+			output = output['slice'](0|0, counter);
+		}
 
         return output;
     }
@@ -472,94 +472,94 @@
                 heap = new Float32Array(heap)
             }
             return Math['acos'](+(
-                        +(+heap[0|0] * +heap[0|0]) +
-                        +(+heap[1|0] * +heap[1|0]) -
-                        +(+heap[2|0] * +heap[2|0])
-                    ) / +(
-                        +2 *
-                        +(+heap[0|0] * +heap[0|0]) *
-                        +(+heap[1|0] * +heap[1|0])
-                    ))
+				+(+heap[0|0] * +heap[0|0]) +
+				+(+heap[1|0] * +heap[1|0]) -
+				+(+heap[2|0] * +heap[2|0])
+			) / +(
+				+2 *
+				+(+heap[0|0] * +heap[0|0]) *
+				+(+heap[1|0] * +heap[1|0])
+			))
         }
 
+        var
+            output = [sanitised[0|0], sanitised[1|0]],
+            counter = 2|0,
+            prevX    = sanitised[0|0],
+            prevY    = sanitised[1|0]
+        ;
+        for(var i=2|0;i<((sanitised.length|0) - (3|0));i+=2|0){
             var
-                output = [sanitised[0|0], sanitised[1|0]],
-                counter = 2|0,
-                prevX    = sanitised[0|0],
-                prevY    = sanitised[1|0]
+                angleArg = [
+                    prevX        , prevY,
+                    sanitised[i]      , sanitised[i + 1|0],
+                    sanitised[i + 2|0], sanitised[i + 3|0]
+                ],
+                angle = +calcAngle(Float32Array
+                    ? Float32Array(angleArg)
+                    : angleArg
+                )
             ;
-            for(var i=2|0;i<((sanitised.length|0) - (3|0));i+=2|0){
+            if(angle > minAngle && angle < maxAngle){
                 var
-                    angleArg = [
-                        prevX        , prevY,
-                        sanitised[i]      , sanitised[i + 1|0],
-                        sanitised[i + 2|0], sanitised[i + 3|0]
-                    ],
-                    angle = +calcAngle(Float32Array
-                        ? Float32Array(angleArg)
-                        : angleArg
+                    startPoint = lerp(
+                        prevX,
+                        prevY,
+                        +sanitised[i],
+                        +sanitised[i + 1|0],
+                        ((angle - minAngle) / (maxAngle - minAngle))
+                    ),
+                    endPoint   = lerp(
+                        +sanitised[i],
+                        +sanitised[i + 1|0],
+                        +sanitised[i + 2|0],
+                        +sanitised[i + 3|0],
+                        +1 - ((angle - minAngle) / (maxAngle - minAngle))
                     )
                 ;
-                if(angle > minAngle && angle < maxAngle){
+                output[counter++] = +startPoint[0|0];
+                output[counter++] = +startPoint[1|0];
+                for(var j=+0.001;j<+1;j+=+0.001){
                     var
-                        startPoint = lerp(
-                            prevX,
-                            prevY,
+                        newPoint1 = lerp(
+                            +startPoint[0|0],
+                            +startPoint[1|0],
                             +sanitised[i],
                             +sanitised[i + 1|0],
-                            ((angle - minAngle) / (maxAngle - minAngle))
+                            j
                         ),
-                        endPoint   = lerp(
+                        newPoint2 = lerp(
                             +sanitised[i],
                             +sanitised[i + 1|0],
-                            +sanitised[i + 2|0],
-                            +sanitised[i + 3|0],
-                            +1 - ((angle - minAngle) / (maxAngle - minAngle))
-                        )
-                    ;
-                    output[counter++] = +startPoint[0|0];
-                    output[counter++] = +startPoint[1|0];
-                    for(var j=+0.001;j<+1;j+=+0.001){
-                        var
-                            newPoint1 = lerp(
-                                +startPoint[0|0],
-                                +startPoint[1|0],
-                                +sanitised[i],
-                                +sanitised[i + 1|0],
-                                j
-                            ),
-                            newPoint2 = lerp(
-                                +sanitised[i],
-                                +sanitised[i + 1|0],
-                                +endPoint[0|0],
-                                +endPoint[1|0],
-                                j
-                            ),
-                            newPoint3 = lerp(
-                                newPoint1[0|0],
-                                newPoint1[1|0],
-                                newPoint2[0|0],
-                                newPoint2[1|0],
-                                +Math['pow'](j,
-                                    +100 * (
-                                        (angle - minAngle) /
-                                        (maxAngle - minAngle)
-                                    )
+                            +endPoint[0|0],
+                            +endPoint[1|0],
+                            j
+                        ),
+                        newPoint3 = lerp(
+                            newPoint1[0|0],
+                            newPoint1[1|0],
+                            newPoint2[0|0],
+                            newPoint2[1|0],
+                            +Math['pow'](j,
+                                +100 * (
+                                    (angle - minAngle) /
+                                    (maxAngle - minAngle)
                                 )
                             )
-                        ;
-                        prevX = output[counter++] = +newPoint3[0|0];
-                        prevY = output[counter++] = +newPoint3[1|0];
-                    }
-                    output[counter++] = +endPoint[0|0];
-                    output[counter++] = +endPoint[1|0];
-                }else{
-                    prevX = output[counter++] = +sanitised[i];
-                    prevY = output[counter++] = +sanitised[i + 1|0];
+                        )
+                    ;
+                    prevX = output[counter++] = +newPoint3[0|0];
+                    prevY = output[counter++] = +newPoint3[1|0];
                 }
+                output[counter++] = +endPoint[0|0];
+                output[counter++] = +endPoint[1|0];
+            }else{
+                prevX = output[counter++] = +sanitised[i];
+                prevY = output[counter++] = +sanitised[i + 1|0];
             }
-            output[counter++] = sanitised[(sanitised.length|0) - (2|0)];
-            output[counter++] = sanitised[(sanitised.length|0) - (1|0)];
+        }
+        output[counter++] = sanitised[(sanitised.length|0) - (2|0)];
+        output[counter++] = sanitised[(sanitised.length|0) - (1|0)];
         return Float32Array ? new Float32Array(output) : output;
     }
 
