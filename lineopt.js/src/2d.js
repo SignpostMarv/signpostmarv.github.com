@@ -295,41 +295,33 @@
     };
 
     function normaliseVectors(sanitised){
-        return (function(stdlib, foreign, heap){
-            'use asm';
+        var
+            copy = Float32Array ?
+                new Float32Array(sanitised.length|0) :
+                new Float32Array(sanitised.length|0)
+        ;
+        for(var i=0|0;i<copy.length|0;i+=2|0){
             var
-                copy = stdlib['Float32Array'] ?
-                    new stdlib['Float32Array'](heap.length|0) :
-                    new stdlib['Array'](heap.length|0)
+                x = +sanitised[i      ],
+                y = +sanitised[i + 1|0]
             ;
-            for(var i=0|0;i<copy.length|0;i+=2|0){
-                var
-                    x = +heap[i      ],
-                    y = +heap[i + 1|0]
-                ;
-                if(x == +0 && y == +0){
-                    copy[i] = copy[i + 1|0] = +0;
-                    continue;
-                }
-                var
-                    magnitude = +stdlib['Math']['sqrt']((x * x) + (y * y))
-                ;
-                copy[i + 0] = +x / +magnitude;
-                copy[i + 1] = +y / +magnitude;
+            if(x == +0 && y == +0){
+                copy[i] = copy[i + 1|0] = +0;
+                continue;
             }
-            return {
-                'output' : copy
-            };
-        })(window, {}, sanitised)['output'];
+            var
+                magnitude = +Math['sqrt']((x * x) + (y * y))
+            ;
+            copy[i + 0] = +x / +magnitude;
+            copy[i + 1] = +y / +magnitude;
+        }
 
         return copy;
     }
 
-    function ignoreConsecutiveDuplicates(sanitised){
-        return (function(stdlib, foreign, heap){
-            'use asm';
+    function ignoreConsecutiveDuplicates(heap){
             var
-                output  = stdlib['Float32Array'] ? new stdlib['Float32Array'](heap.length) : new stdlib['Array'],
+                output  = Float32Array ? new Float32Array(heap.length) : new Array,
                 counter = 2|0,
                 prevX   = +heap[0],
                 prevY   = +heap[1]
@@ -349,32 +341,25 @@
             }
             output[counter++] = heap[heap.length - 2];
             output[counter++] = heap[heap.length - 1];
-            if(stdlib['Float32Array']){
-                output = new stdlib['Float32Array'](output['buffer']['slice'](0, counter * 4));
+            if(Float32Array){
+                output = new Float32Array(output['buffer']['slice'](0, counter * 4));
             }
-            return {
-                'output' : output
-            }
-        })({
-            'Float32Array': Float32Array,
-            'Array'       : Array
-        }, {}, sanitised)['output'];
+        return output;
     }
 
-    function reduceByVector(sanitised){
-        return (function(stdlib, foreign, heap){
-            'use asm';
+    function reduceByVector(heap){
             var
-                output  = new stdlib['optArray'](heap.length|0),
+                optArray = Float32Array ? Float32Array: Array,
+                output  = new optArray(heap.length|0),
                 counter = 2|0,
-                distances  = new stdlib['optArray']((heap.length|0) - (2|0))
+                distances  = new optArray((heap.length|0) - (2|0))
             ;
             for(var i=0|0;i<(heap.length|0) - (2|0);i+=2|0){
                 distances[i + 0|0] = +heap[i + 2|0] - +heap[i + 0|0];
                 distances[i + 1|0] = +heap[i + 3|0] - +heap[i + 1|0];
             }
             var
-                normalised = foreign['normaliseVectors'](distances),
+                normalised = normaliseVectors(distances),
                 nPrevX     = +normalised[0|0],
                 nPrevY     = +normalised[1|0],
                 prevX      = +heap[0|0],
@@ -395,33 +380,24 @@
             }
             output[counter++] = heap[(heap.length|0) - (2|0)];
             output[counter++] = heap[(heap.length|0) - (1|0)];
-            if(stdlib['Float32Array']){
-                output = new stdlib['Float32Array'](output['buffer']['slice'](0, counter * 4|0));
+            if(Float32Array){
+                output = new Float32Array(output['buffer']['slice'](0, counter * 4|0));
             }else{
                 output = output['slice'](0, counter);
             }
 
-            return {
-                'output' : output
-            };
-        })({
-            'Float32Array': Float32Array,
-            'Array'       : Array,
-            'optArray'    : Float32Array ? Float32Array : Array
-        }, {'normaliseVectors':normaliseVectors}, sanitised)['output'];
+        return output;
     }
 
-    function reduceByDistance(sanitised, min){
-        return (function(stdlib, foreign, heap){
-            'use asm';
+    function reduceByDistance(heap, min){
             var
-                minDistance = +stdlib['Math']['abs'](
-                    +stdlib['Math']['max'](
+                minDistance = +Math['abs'](
+                    +Math['max'](
                         +.0001,
-                        +foreign['minDistance'] || +0
+                        +min || +0
                     )
                 ),
-                output  = new stdlib['optArray'](heap.length|0),
+                output  = Float32Array ? new Float32Array(heap.length|0) : new Array(heap.length|0),
                 counter = 2|0
             ;
             output[0|0] = heap[0|0];
@@ -431,7 +407,7 @@
                 var
                     x = +heap[i + 2|0] - +heap[i],
                     y = +heap[i + 3|0] - +heap[i + 1|0],
-                    currentMag = +stdlib['Math'].abs(
+                    currentMag = +Math.abs(
                         +(x * x) +
                         +(y * y)
                     )
@@ -443,44 +419,23 @@
             }
             output[counter++] = heap[(heap.length|0) - (2|0)];
             output[counter++] = heap[(heap.length|0) - (1|0)];
-            if(stdlib['Float32Array']){
-                output = new stdlib['Float32Array'](output['buffer']['slice'](0|0, counter * 4|0));
+            if(Float32Array){
+                output = new Float32Array(output['buffer']['slice'](0|0, counter * 4|0));
             }else{
                 output = output['slice'](0|0, counter);
             }
 
-            return {
-                'output' : output
-            };
-        })({
-            'Math'         : {'abs':Math.abs, 'max':Math.max},
-            'optArray'     : Float32Array ? Float32Array : Array,
-            'Float32Array' : Float32Array
-        }, {'minDistance':min}, sanitised)['output'];
+        return output;
     }
 
     function lerp(ax, ay, bx, by, c){
         var
             c = +Math['max'](0, Math['min'](1, c * 1)),
-            heapArg = [ax, ay, bx, by, c]
+            output = Float32Array ? new Float32Array(2) : new Array(2)
         ;
-        if(Float32Array){
-            heapArg = new Float32Array(heapArg);
-        }
-        return (function(stdlib, foreign, heap){
-            var
-                output = new foreign['optArray'](2|0)
-            ;
-            output[0|0] = +heap[0|0] +
-                ((+heap[2|0] - +heap[0|0]) * +heap[4|0]);
-            output[1|0] = +heap[1|0] +
-                ((+heap[3|0] - +heap[1|0]) * +heap[4|0]);
-            return {
-                'output' : output
-            }
-        })(window, {
-            'optArray' : Float32Array ? Float32Array : Array
-        }, heapArg)['output'];
+        output[0|0] = +ax +((+bx - +ax) * +c);
+        output[1|0] = +ay +((+by - +ay) * +c);
+        return output;
     }
 
     function smoothByAngle(sanitised, minAngle, maxAngle){
@@ -489,46 +444,35 @@
         }
         minAngle = parseFloat(minAngle || 5) * (Math['PI'] / 180);
         maxAngle = parseFloat(maxAngle || 270) * (Math['PI'] / 180);
-        function distance(heapArg){
-            if(Float32Array && !(heapArg instanceof Float32Array)){
-                heapArg = new Float32Array(heapArg)
-            }
-            return (function(stdlib, foreign, heap){
-                'use asm';
-                return {
-                    'output' : +stdlib['sqrt'](
-                        +stdlib['abs'](
-                            +stdlib['pow'](+heap[2|0] - +heap[0|0], 2|0) +
-                            +stdlib['pow'](+heap[3|0] - +heap[1|0], 2|0)
-                        )
-                    )
-                };
-            })(Math, {}, heapArg)['output'];
+        function distance(a, b, c, d){
+            return +Math['sqrt'](
+                +Math['abs'](
+                    +Math['pow'](+c - +a, 2|0) +
+                    +Math['pow'](+d - +b, 2|0)
+                )
+            );
         }
-        function angle(heapArg){
-            if(Float32Array && !(heapArg instanceof Float32Array)){
-                heapArg = new Float32Array(heapArg)
+        function calcAngle(heap){
+            if(Float32Array && !(heap instanceof Float32Array)){
+                heap = new Float32Array(heap)
             }
             var
                 d12 = Float32Array ? new Float32Array(
-                    heapArg['buffer']['slice'](0 * 4, 4 * 4)
-                ) : heapArg['slice'](0, 4),
-                d13 = [heapArg[0], heapArg[1], heapArg[4], heapArg[5]],
+                    heap['buffer']['slice'](0 * 4, 4 * 4)
+                ) : heap['slice'](0, 4),
+                d13 = [heap[0], heap[1], heap[4], heap[5]],
                 d23 = Float32Array ? new Float32Array(
-                    heapArg['buffer']['slice'](2 * 4, 6 * 4)
-                ) : heapArg['slice'](2, 6),
-                heapArg = [d12, d13, d23]
+                    heap['buffer']['slice'](2 * 4, 6 * 4)
+                ) : heap['slice'](2, 6),
+                heap = [d12, d13, d23]
             ;
-            heapArg.forEach(function(e,i){
-                heapArg[i] = distance(e);
+            heap.forEach(function(e,i){
+                heap[i] = distance['apply'](window, e);
             });
             if(Float32Array){
-                heapArg = new Float32Array(heapArg)
+                heap = new Float32Array(heap)
             }
-            return (function(stdlib, foreign, heap){
-                'use asm';
-                return {
-                    'output' : stdlib['acos'](+(
+            return Math['acos'](+(
                         +(+heap[0|0] * +heap[0|0]) +
                         +(+heap[1|0] * +heap[1|0]) -
                         +(+heap[2|0] * +heap[2|0])
@@ -537,46 +481,40 @@
                         +(+heap[0|0] * +heap[0|0]) *
                         +(+heap[1|0] * +heap[1|0])
                     ))
-                };
-            })(Math, {}, heapArg)['output'];
         }
 
-        return (function(stdlib, foreign, heap){
-            'use asm';
             var
-                output = new stdlib['Array'](heap[0|0], heap[1|0]),
+                output = [sanitised[0|0], sanitised[1|0]],
                 counter = 2|0,
-                minAngle = +foreign['minAngle'],
-                maxAngle = +foreign['maxAngle'],
-                prevX    = heap[0|0],
-                prevY    = heap[1|0]
+                prevX    = sanitised[0|0],
+                prevY    = sanitised[1|0]
             ;
-            for(var i=2|0;i<((heap.length|0) - (3|0));i+=2|0){
+            for(var i=2|0;i<((sanitised.length|0) - (3|0));i+=2|0){
                 var
-                    angleArg = new stdlib['Array'](
+                    angleArg = [
                         prevX        , prevY,
-                        heap[i]      , heap[i + 1|0],
-                        heap[i + 2|0], heap[i + 3|0]
-                    ),
-                    angle = +foreign['angle'](stdlib['Float32Array']
-                        ? new stdlib['Float32Array'](angleArg)
+                        sanitised[i]      , sanitised[i + 1|0],
+                        sanitised[i + 2|0], sanitised[i + 3|0]
+                    ],
+                    angle = +calcAngle(Float32Array
+                        ? Float32Array(angleArg)
                         : angleArg
                     )
                 ;
                 if(angle > minAngle && angle < maxAngle){
                     var
-                        startPoint = foreign['lerp'](
+                        startPoint = lerp(
                             prevX,
                             prevY,
-                            +heap[i],
-                            +heap[i + 1|0],
+                            +sanitised[i],
+                            +sanitised[i + 1|0],
                             ((angle - minAngle) / (maxAngle - minAngle))
                         ),
-                        endPoint   = foreign['lerp'](
-                            +heap[i],
-                            +heap[i + 1|0],
-                            +heap[i + 2|0],
-                            +heap[i + 3|0],
+                        endPoint   = lerp(
+                            +sanitised[i],
+                            +sanitised[i + 1|0],
+                            +sanitised[i + 2|0],
+                            +sanitised[i + 3|0],
                             +1 - ((angle - minAngle) / (maxAngle - minAngle))
                         )
                     ;
@@ -584,26 +522,26 @@
                     output[counter++] = +startPoint[1|0];
                     for(var j=+0.001;j<+1;j+=+0.001){
                         var
-                            newPoint1 = foreign['lerp'](
+                            newPoint1 = lerp(
                                 +startPoint[0|0],
                                 +startPoint[1|0],
-                                +heap[i],
-                                +heap[i + 1|0],
+                                +sanitised[i],
+                                +sanitised[i + 1|0],
                                 j
                             ),
-                            newPoint2 = foreign['lerp'](
-                                +heap[i],
-                                +heap[i + 1|0],
+                            newPoint2 = lerp(
+                                +sanitised[i],
+                                +sanitised[i + 1|0],
                                 +endPoint[0|0],
                                 +endPoint[1|0],
                                 j
                             ),
-                            newPoint3 = foreign['lerp'](
+                            newPoint3 = lerp(
                                 newPoint1[0|0],
                                 newPoint1[1|0],
                                 newPoint2[0|0],
                                 newPoint2[1|0],
-                                +stdlib['Math']['pow'](j,
+                                +Math['pow'](j,
                                     +100 * (
                                         (angle - minAngle) /
                                         (maxAngle - minAngle)
@@ -617,25 +555,13 @@
                     output[counter++] = +endPoint[0|0];
                     output[counter++] = +endPoint[1|0];
                 }else{
-                    prevX = output[counter++] = +heap[i];
-                    prevY = output[counter++] = +heap[i + 1|0];
+                    prevX = output[counter++] = +sanitised[i];
+                    prevY = output[counter++] = +sanitised[i + 1|0];
                 }
             }
-            output[counter++] = heap[(heap.length|0) - (2|0)];
-            output[counter++] = heap[(heap.length|0) - (1|0)];
-            return {
-                'output' : (
-                    stdlib['Float32Array']
-                        ? new stdlib['Float32Array'](output)
-                        : output
-                )
-            }
-        })(window, {
-            'angle'    : angle,
-            'lerp'     : lerp,
-            'minAngle' : minAngle,
-            'maxAngle' : maxAngle
-        }, sanitised)['output'];
+            output[counter++] = sanitised[(sanitised.length|0) - (2|0)];
+            output[counter++] = sanitised[(sanitised.length|0) - (1|0)];
+        return Float32Array ? new Float32Array(output) : output;
     }
 
     lineOpt['twoD'] = {
