@@ -453,9 +453,6 @@
             );
         }
         function calcAngle(heap){
-            if(Float32Array && !(heap instanceof Float32Array)){
-                heap = new Float32Array(heap)
-            }
             var
                 d12 = Float32Array ? new Float32Array(
                     heap['buffer']['slice'](0 * 4, 4 * 4)
