@@ -38,7 +38,8 @@
             Array,
             Float32Array
         ],
-        numericOnlyArrays = supportedArrays.slice(1)
+        numericOnlyArrays = supportedArrays.slice(1),
+        optArray = Float32Array ? Float32Array : Array
     ;
 
     function isSupportedArray(input){
@@ -321,7 +322,7 @@
 
     function ignoreConsecutiveDuplicates(heap){
             var
-                output  = Float32Array ? new Float32Array(heap.length) : new Array,
+                output  = new optArray(heap.length|0),
                 counter = 2|0,
                 prevX   = +heap[0],
                 prevY   = +heap[1]
@@ -343,13 +344,14 @@
             output[counter++] = heap[heap.length - 1];
             if(Float32Array){
                 output = new Float32Array(output['buffer']['slice'](0, counter * 4));
+            }else{
+                output = output['slice'](0, counter);
             }
         return output;
     }
 
     function reduceByVector(heap){
             var
-                optArray = Float32Array ? Float32Array: Array,
                 output  = new optArray(heap.length|0),
                 counter = 2|0,
                 distances  = new optArray((heap.length|0) - (2|0))
@@ -397,7 +399,7 @@
                         +min || +0
                     )
                 ),
-                output  = Float32Array ? new Float32Array(heap.length|0) : new Array(heap.length|0),
+                output  = new optArray(heap.length|0),
                 counter = 2|0
             ;
             output[0|0] = heap[0|0];
@@ -431,7 +433,7 @@
     function lerp(ax, ay, bx, by, c){
         var
             c = +Math['max'](0, Math['min'](1, c * 1)),
-            output = Float32Array ? new Float32Array(2) : new Array(2)
+            output = new optArray(2)
         ;
         output[0|0] = +ax +((+bx - +ax) * +c);
         output[1|0] = +ay +((+by - +ay) * +c);
