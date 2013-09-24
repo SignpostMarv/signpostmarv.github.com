@@ -496,7 +496,7 @@
                     sanitised[i + 2|0], sanitised[i + 3|0]
                 ],
                 angle = +calcAngle(Float32Array
-                    ? Float32Array(angleArg)
+                    ? new Float32Array(angleArg)
                     : angleArg
                 )
             ;
