@@ -73,6 +73,14 @@
 		[
 			'radius',
 			'lineWidth',
+			'fillR',
+			'fillG',
+			'fillB',
+			'fillA',
+			'lineR',
+			'lineG',
+			'lineB',
+			'lineA'
 		].forEach(function(e){
 			if(hasOwn(newOpts, e)){
 				opts[e] = newOpts[e]
@@ -101,6 +109,14 @@
 				randomCache[width][height] = new mapgen.roundedCornerPoly({
 					radius    : opts['radius'],
 					lineWidth : opts['lineWidth'],
+					fillR     : opts['fillR'],
+					fillG     : opts['fillG'],
+					fillB     : opts['fillB'],
+					fillA     : opts['fillA'],
+					lineR     : opts['lineR'],
+					lineG     : opts['lineG'],
+					lineB     : opts['lineB'],
+					lineA     : opts['lineA'],
 					width     : width,
 					height    : height
 				});
