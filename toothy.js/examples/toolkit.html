@@ -1,96 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>toothy.js toolkit</title>
+<title>mapgen.js toolkit</title>
 <meta charset="UTF-8" />
-<script src="../src/toothy.js"></script>
-<script src="../lib/perlin/perlin.js"></script>
-<script>
-var
-	perlin = new Perlin(undefined,false),
-	render = document.createElement('canvas')
-;
-render.width = render.height = 800;
+<script src="../src/mapgen.js" defer></script>
+<script src="../lib/bin-packing/js/packer.js"></script>
+<script defer>
 window.onload = function(){
-	document.body.appendChild(render);
 	var
+		render = document.createElement('canvas'),
 		form = document.querySelector('form'),
-		ctx = render.getContext('2d'),
-		presetChanged = function(){
-			gear = new toothy.preset[form.querySelector('select').value]({
-				radius : form.querySelector('#radius').value,
-				teeth :form.querySelector('#teeth').value,
-				toothHeight : form.querySelector('#toothHeight').value,
-				padding:  form.querySelector('#padding').value,
-				noiseCallback : function(x, y, width, height){
-					return perlin.noise(x * Math.pow(width, .1), y * Math.pow(height, .1));
-				}
-			});
-			draw = gear.draw(true);
-			ctx.clearRect(0, 0, 800, 800);
-			ctx.drawImage(draw, 400 - (draw.width / 2), 400 - (draw.width / 2));
-		},
-		requestAnimationFrame = requestAnimationFrame || function(cb){ setTimeout(cb, 1000 / 60); },
-		counter = 0,
-		doAnimation = function(){
-			if(animate){
-				var
-					speedEl = form.querySelector('#speed'),
-					speed = ((speedEl.max - speedEl.value) + 1) * 100
-				;
-				ctx.clearRect(0, 0, 800, 800);
-				ctx.save();
-				ctx.translate(400, 400);
-				ctx.rotate((Math.PI * 2) * (counter / speed));
-				ctx.drawImage(draw, (draw.width / -2), (draw.width / -2));
-				++counter;
-				counter %= speed;
-				ctx.restore();
-				requestAnimationFrame(doAnimation);
-			}
-		},
-		animate = false,
-		draw,
-		gear
+		gen,
+		ctx
 	;
-
-	for(var i in toothy.preset){
-		if(toothy.preset.hasOwnProperty(i)){
-			var
-				option = document.createElement('option'),
-				label  = i,
-				labelParts = [],
-				labelPart = ''
-			;
-			for(var j=0;j<i.length;++j){
-				if(i[j] == i[j].toUpperCase()){
-					labelParts.push(labelPart);
-					labelPart = '';
-				}
-				labelPart += i[j];
-			}
-			labelParts.push(labelPart);
-			labelParts[0][0] = labelParts[0][0].toUpperCase();
-			option.value = i;
-			option.appendChild(document.createTextNode(labelParts.join(' ')));
-			form.querySelector('select').appendChild(option);
-		}
+	function doDraw(map){
+		var
+			draw = map.draw();
+		;
+		ctx.save();
+		ctx.fillStyle = '#eee';
+		ctx.fillRect(0, 0, render.width, render.height);
+		ctx.translate(400 + (draw.width / -2), 400 + (draw.height / -2));
+		ctx.drawImage(draw, 0, 0);
+		ctx.restore();
 	}
-	form.querySelector('select > option').selected = true;
-	presetChanged();
+
+	function prefUpdate(){
+		var
+			checkOpts = [
+				'renderWidth',
+				'renderHeight',
+				'roadWidth',
+				'lineWidth',
+				'radius',
+				'polyWidth',
+				'polyWidthMul',
+				'polyHeight',
+				'polyHeightMul'
+			],
+			opts = {}
+		;
+		checkOpts.forEach(function(e){
+			var
+				el = form.querySelector('#' + e)
+			;
+			if(el){
+				opts[e] = el.value;
+			}
+		});
+		gen = new mapgen(opts);
+	}
+	prefUpdate();
+	render.width = render.height = 800;
+	ctx = render.getContext('2d');
+	document.body.appendChild(render);
+	doDraw(gen);
 	form.onsubmit = function(e){
 		e.preventDefault();
+		doDraw(gen);
 		return false;
 	}
-	form.querySelector('#animate').onclick = function(){
-		animate = !animate;
-		doAnimation();
-		this.textContent = animate ? 'Stop Animating' : 'Animate';
-	}
+
 	form.oninput = form.onchange = function(e){
 		switch(e.target.nodeName){
 			case 'INPUT':
-				form.querySelector('#padding').setAttribute('max', form.querySelector('#radius').value);
 				var
 					output = form.querySelector('output[for="' + e.target.id + '"]'),
 					id = e.target.id,
@@ -100,50 +73,39 @@ window.onload = function(){
 					output.removeChild(output.firstChild);
 				}
 				output.appendChild(document.createTextNode(e.target.value));
-				if(e.target.id != 'speed'){
-					opts[id] = e.target.value;
-					gear.options(opts);
-					ctx.clearRect(0,0,800,800);
-					draw = gear.draw(true);
-					ctx.drawImage(draw, 400 - (draw.width / 2), 400 - (draw.width / 2));
-				}
-			break;
-			case 'SELECT':
-				presetChanged();
+				prefUpdate();
 			break;
 		}
 	}
 }
 </script>
 <style>
-form{
-	position: absolute ;
-}
 canvas{
 	background: #fff ;
+}
+form{
+	float: left ;
 }
 </style>
 </head>
 <body>
 <form>
-	<p><a href="https://github.com/SignpostMarv/toothy.js">GitHub repo</a></p>
+	<p><a href="https://github.com/SignpostMarv/mapgen.js">GitHub repo</a></p>
 	<fieldset>
 		<legend>Toolkit</legend>
 		<ul>
-			<li><label for=preset>Preset: </label><select id=preset></select></li>
-			<li><label for=radius>Radius: </label><input id=radius type=range min=20 max=350 step=1 value=100><output for=radius>100</output></li>
-			<li><label for=teeth>Teeth: </label><input id=teeth type=range min=1 max=100 step=1 value=5><output for=teeth>5</output></li>
-			<li><label for=toothHeight>Tooth Height: </label><input id=toothHeight type=range min=-300 max=300 step=1 value=10><output for=toothHeight>10</output></li>
-			<li><label for=padding>Padding: </label><input id=padding type=range min=0 max=300 step=1 value=10><output for=padding>10</output></li>
+			<li><label for=renderWidth>Render Width: </label><input id=renderWidth type=range min=100 max=800 value=800><output for=renderWidth>800</output></li>
+			<li><label for=renderHeight>Render Height: </label><input id=renderHeight type=range min=100 max=800 value=800><output for=renderHeight>800</output></li>
+			<li><label for=roadWidth>Road Width: </label><input id=roadWidth type=range min=4 max=64 value=16><output for=roadWidth>16</output></li>
+			<li><label for=lineWidth>Line Width: </label><input id=lineWidth type=range min=4 max=64 value=4><output for=lineWidth>4</output></li>
+			<li><label for=polyWidth>Building Width: </label><input id=polyWidth type=range min=4 max=128 step=4 value=64><output for=polyWidth>64</output></li>
+			<li><label for=polyWidthMul>Building Width randomiser: </label><input id=polyWidthMul type=range min=1 max=10 value=3><output for=polyWidthMul>3</output></li>
+			<li><label for=polyHeight>Building Height: </label><input id=polyHeight type=range min=4 max=128 step=4 value=64><output for=polyHeight>64</output></li>
+			<li><label for=polyHeightMul>Building Height randomiser: </label><input id=polyHeightMul type=range min=1 max=10 value=2><output for=polyHeightMul>2</output></li>
+			<li><label for=radius>Radius: </label><input id=radius type=range min=4 max=64 value=16><output for=radius>16</output></li>
 		</ul>
 	</fieldset>
-	<fieldset>
-		<legend>Animation</legend>
-		<ul>
-			<li><label for=speed>Speed: </label><input id=speed type=range min=1 max=10 value=5><output for=speed>5</output></li>
-		</ul>
-		<button id=animate type=submit>Animate</button>
-	</fieldset>
+	<button type=submit>Redraw</button>
 </form>
 </body>
 </html>

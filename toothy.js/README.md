@@ -1,7 +1,7 @@
-# About toothy.js
+# About mapgen.js
 
-toothy.js is a library for generating cogs/gears in canvas.
+mapgen.js is a library for generating street maps in canvas.
 
 ## Examples
 
-* [Toolkit](http://signpostmarv.github.com/toothy.js/examples/toolkit.html)
+* [Toolkit](http://signpostmarv.github.com/mapgen.js/examples/toolkit.html)
