@@ -1,0 +1,15 @@
+[submodule "mapapi.js"]
+	path = mapapi.js
+	url = https://github.com/SignpostMarv/mapapi.js.git
+[submodule "mapgen.js"]
+	path = mapgen.js
+	url = https://github.com/SignpostMarv/mapgen.js.git
+[submodule "lineopt.js"]
+	path = lineopt.js
+	url = https://github.com/SignpostMarv/lineopt.js.git
+[submodule "diceRoll"]
+	path = diceRoll
+	url = https://github.com/SignpostMarv/diceRoll.git
+[submodule "toothy.js"]
+	path = toothy.js
+	url = https://github.com/SignpostMarv/toothy.js.git
