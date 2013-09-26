@@ -106,104 +106,34 @@
 			return randomCache[width][height].draw();
 		}
 		var
-			binFitLength = (render.width ) * render.height,
-			binFit = (function(){
-				var
-					a = []
-				;
-				for(var i=0;i<binFitLength;++i){
-					a.push(0);
-				}
-				return a;
-			})(),
-			binFitCheck = function(x,y,val){
-				x = x || 0;
-				y = y || 0;
-				if(x >= render.width || y >= render.width){
-					return false;
-				}
-				var
-					pos = (y * render.width) + x,
-					bit = 1 << (x % 8)
-				;
-				if(val != undefined){
-					binFit[pos] = !!val;
-					/*
-					if(val){
-						binFit[pos] |= bit;
-					}else{
-						binFit[pos] &= ~bit;
-					}
-					*/
-				}
-				return !!(binFit[pos]);
-			},
-			binFitRect = function(x1, y1, x2, y2, val){
-				val = !!val;
-				for(var x=x1;x<=x2;++x){
-					for(var y=y1;y<=y2;++y){
-						binFitCheck(x, y, val);
-					}
-				}
-			},
-			binFitRectCheck = function(x1, y1, x2, y2){
-				for(var x=x1;x<=x2;++x){
-					for(var y=y1;y<=y2;++y){
-						if(binFitCheck(x, y)){
-							return true;
-						}
-					}
-				}
-				return false;
-			},
 			ctx = render.getContext('2d'),
 			draw,
 			found,
-			i = 0
+			i = 0,
+			packer = new Packer(render.width, render.height),
+			failCount = 0,
+			block
 		;
-		function findAvailable(dim){
-			for(var x=0;x<render.width;x+=opts['roadWidth']){
-				for(var y=0;y<render.height;y+=opts['roadWidth']){
-					if(!binFitRectCheck(x, y, x + dim.width, y + dim.width)){
-						return [x,y];
-					}
-				}
-			}
-			return false;
-		}
-		draw = randomDraw();
-		while((found = findAvailable(draw))){
-			var
-				x = found[0],
-				y = found[1]
-			;
-			if(x == 0){
-				x = draw.width / -2;
-			}
-			if(y == 0){
-				y = draw.height / -2;
-			}
-			ctx.drawImage(draw, x, y);
-			binFitRect(x, y, x + draw.width, y + draw.height, true);
+		ctx.translate(opts['roadWidth'] / +2, opts['roadWidth'] / +2);
+		while(failCount < 100){
 			draw = randomDraw();
-		}
-
-		var
-			debug = document.querySelector('canvas#debug'),
-			debug = debug ? debug : document.createElement('canvas'),
-			debugctx
-		;
-		debug.id = 'debug';
-		debug.width = render.width;
-		debug.height = render.height;
-		debugctx = debug.getContext('2d');
-		for(var x=0;x<debug.width;++x){
-			for(var y=0;y<debug.height;++y){
-				debugctx.fillStyle = binFitCheck(x,y) ? '#000' : '#fff';
-				debugctx.fillRect(x,y,1,1);
+			block = {
+				w : draw.width + opts['roadWidth'],
+				h : draw.height + opts['roadWidth']
+			};
+			packer.fit([block]);
+			while(block.fit){
+				failCount = 0;
+				ctx.drawImage(draw, block.fit.x, block.fit.y);
+				draw = randomDraw();
+				block = {
+					w : draw.width + opts['roadWidth'],
+					h : draw.height + opts['roadWidth']
+				};
+				packer.fit([block]);
 			}
+			++failCount;
 		}
-		document.body.appendChild(debug);
 
 		return render;
 	}
