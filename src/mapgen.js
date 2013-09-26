@@ -106,42 +106,70 @@
 			return randomCache[width][height].draw();
 		}
 		var
-			tesselateBuffer = document.createElement('canvas'),
-			tesselateBufferScale = Math['min'](opts['polyWidth'], opts['polyHeight']) / 16|0,
-			tesselateCtx
-		;
-		tesselateBuffer.width = render.width / tesselateBufferScale;
-		tesselateBuffer.height = render.height / tesselateBufferScale
-		var
+			binFitLength = (render.width ) * render.height,
+			binFit = (function(){
+				var
+					a = []
+				;
+				for(var i=0;i<binFitLength;++i){
+					a.push(0);
+				}
+				return a;
+			})(),
+			binFitCheck = function(x,y,val){
+				x = x || 0;
+				y = y || 0;
+				if(x >= render.width || y >= render.width){
+					return false;
+				}
+				var
+					pos = (y * render.width) + x,
+					bit = 1 << (x % 8)
+				;
+				if(val != undefined){
+					binFit[pos] = !!val;
+					/*
+					if(val){
+						binFit[pos] |= bit;
+					}else{
+						binFit[pos] &= ~bit;
+					}
+					*/
+				}
+				return !!(binFit[pos]);
+			},
+			binFitRect = function(x1, y1, x2, y2, val){
+				val = !!val;
+				for(var x=x1;x<=x2;++x){
+					for(var y=y1;y<=y2;++y){
+						binFitCheck(x, y, val);
+					}
+				}
+			},
+			binFitRectCheck = function(x1, y1, x2, y2){
+				for(var x=x1;x<=x2;++x){
+					for(var y=y1;y<=y2;++y){
+						if(binFitCheck(x, y)){
+							return true;
+						}
+					}
+				}
+				return false;
+			},
 			ctx = render.getContext('2d'),
-			tesselateCtx = tesselateBuffer.getContext('2d'),
 			draw,
 			found,
 			i = 0
 		;
-		tesselateCtx.scale(+1/tesselateBufferScale,+1/tesselateBufferScale);
 		function findAvailable(dim){
-			var
-				allAlpha = true
-			;
-			for(var x=0;x<tesselateBuffer.width;x+=(opts['roadWidth'] / tesselateBufferScale)){
-				for(var y=0;y<tesselateBuffer.height;y+=(opts['roadWidth'] / tesselateBufferScale)){
-					allAlpha = true;
-					var
-						imageData = tesselateCtx.getImageData(x, y, dim.width / tesselateBufferScale, dim.height / tesselateBufferScale).data
-					;
-					for(var i=0;i<imageData.length;i+=(4|0)){
-						if(imageData[i + 3] != 0){
-							allAlpha = false;
-							break;
-						}
-					}
-					if(allAlpha){
-						return [x * tesselateBufferScale,y * tesselateBufferScale];
+			for(var x=0;x<render.width;x+=opts['roadWidth']){
+				for(var y=0;y<render.height;y+=opts['roadWidth']){
+					if(!binFitRectCheck(x, y, x + dim.width, y + dim.width)){
+						return [x,y];
 					}
 				}
 			}
-			return allAlpha ? [0,0] : false;
+			return false;
 		}
 		draw = randomDraw();
 		while((found = findAvailable(draw))){
@@ -156,9 +184,26 @@
 				y = draw.height / -2;
 			}
 			ctx.drawImage(draw, x, y);
-			tesselateCtx.fillRect(x, y, draw.width, draw.height);
+			binFitRect(x, y, x + draw.width, y + draw.height, true);
 			draw = randomDraw();
 		}
+
+		var
+			debug = document.querySelector('canvas#debug'),
+			debug = debug ? debug : document.createElement('canvas'),
+			debugctx
+		;
+		debug.id = 'debug';
+		debug.width = render.width;
+		debug.height = render.height;
+		debugctx = debug.getContext('2d');
+		for(var x=0;x<debug.width;++x){
+			for(var y=0;y<debug.height;++y){
+				debugctx.fillStyle = binFitCheck(x,y) ? '#000' : '#fff';
+				debugctx.fillRect(x,y,1,1);
+			}
+		}
+		document.body.appendChild(debug);
 
 		return render;
 	}
