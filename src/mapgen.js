@@ -89,8 +89,10 @@
 		render.height = opts['renderHeight'];
 		function randomDraw(){
 			var
-				width = opts['polyWidth' ] * (Math.floor(Math.random() * opts['polyWidthMul' ]) + 1|0),
-				height = opts['polyHeight'] * (Math.floor(Math.random() * opts['polyHeightMul']) + 1|0)
+				randomWidth  = (Math.floor(Math.random() * opts['polyWidthMul' ]) + 1|0),
+				randomHeight = (Math.floor(Math.random() * opts['polyHeightMul']) + 1|0),
+				width = (opts['polyWidth' ] * randomWidth) + ((randomWidth - 1) * (opts['roadWidth'] * 1.5)),
+				height = (opts['polyHeight'] * randomHeight) + ((randomHeight - 1) * (opts['roadWidth'] * 1.5))
 			;
 			if(!hasOwn(randomCache, width)){
 				randomCache[width] = {};
@@ -115,7 +117,7 @@
 			block
 		;
 		ctx.translate(opts['roadWidth'] / +2, opts['roadWidth'] / +2);
-		while(failCount < 100){
+		while(failCount < 4){
 			draw = randomDraw();
 			block = {
 				w : draw.width + opts['roadWidth'],
