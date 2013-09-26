@@ -124,8 +124,8 @@
 			var
 				allAlpha = true
 			;
-			for(var x=0;x<tesselateBuffer.width;++x){
-				for(var y=0;y<tesselateBuffer.height;++y){
+			for(var x=0;x<tesselateBuffer.width;x+=(opts['roadWidth'] / tesselateBufferScale)){
+				for(var y=0;y<tesselateBuffer.height;y+=(opts['roadWidth'] / tesselateBufferScale)){
 					allAlpha = true;
 					var
 						imageData = tesselateCtx.getImageData(x, y, dim.width / tesselateBufferScale, dim.height / tesselateBufferScale).data
@@ -156,7 +156,7 @@
 				y = draw.height / -2;
 			}
 			ctx.drawImage(draw, x, y);
-			tesselateCtx.fillRect(x, y, draw.width + opts['roadWidth'], draw.height + opts['roadWidth']);
+			tesselateCtx.fillRect(x, y, draw.width, draw.height);
 			draw = randomDraw();
 		}
 
